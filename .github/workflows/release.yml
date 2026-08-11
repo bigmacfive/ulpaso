@@ -1,0 +1,67 @@
+name: Unsigned macOS release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Confirm Apple Silicon runner
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify source
+        run: pnpm check
+
+      - name: Build unsigned application and DMG
+        run: pnpm tauri:build:unsigned
+
+      - name: Create checksums
+        run: |
+          cd src-tauri/target/release/bundle/dmg
+          shasum -a 256 Ulpaso_*.dmg > SHA256SUMS.txt
+
+      - name: Publish tagged prerelease
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            src-tauri/target/release/bundle/dmg/Ulpaso_*.dmg \
+            src-tauri/target/release/bundle/dmg/SHA256SUMS.txt \
+            --verify-tag \
+            --generate-notes \
+            --prerelease \
+            --title "Ulpaso ${GITHUB_REF_NAME} (unsigned preview)"
+
+      - name: Preserve manually triggered build
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ulpaso-unsigned-${{ github.sha }}
+          path: |
+            src-tauri/target/release/bundle/dmg/Ulpaso_*.dmg
+            src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

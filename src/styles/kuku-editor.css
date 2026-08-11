@@ -1,0 +1,1229 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Kuku Editor Styles
+   ───────────────────────────────────────────────────────────────────────────
+   All typography values use relative units (em/rem) so that changing
+   --editor-font-size scales everything consistently.
+
+   Vendored styles from prosekit@0.19.0 and prosemirror-flat-list are
+   merged inline and overridden where necessary.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Flat List  (vendored: prosekit@0.19.0 — extensions/list/style.css)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── List icon variables ── */
+
+:root {
+  --prosekit-list-bullet-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='2.5' fill='currentColor'/%3E%3C/svg%3E");
+}
+
+/* ── Base list structure ── */
+
+.prosemirror-flat-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: relative;
+}
+
+.prosemirror-flat-list > .list-marker {
+  width: var(--editor-list-indent, 1lh);
+  height: 1lh;
+  text-align: center;
+  position: absolute;
+  inset-inline-start: 0;
+}
+
+.prosemirror-flat-list > .list-content {
+  margin-inline-start: var(--editor-list-indent, 1lh);
+}
+
+/* ── Bullet markers (SVG mask icons) ── */
+
+.prosemirror-flat-list[data-list-kind="bullet"] > .list-marker {
+  background-color: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+.prosemirror-flat-list[data-list-kind="bullet"] > .list-marker {
+  mask-image: var(--prosekit-list-bullet-icon);
+}
+
+/* ── Ordered list counter ── */
+
+.prosemirror-flat-list[data-list-kind="ordered"] > * {
+  contain: style;
+}
+
+.prosemirror-flat-list[data-list-kind="ordered"]:before {
+  content: counter(prosemirror-flat-list-counter, decimal) ". ";
+  font-variant-numeric: tabular-nums;
+  position: absolute;
+  inset-inline-end: calc(100% - var(--editor-list-indent, 1lh));
+}
+
+.prosemirror-flat-list[data-list-kind="ordered"] {
+  counter-increment: prosemirror-flat-list-counter;
+}
+
+.prosemirror-flat-list[data-list-kind="ordered"]:first-child,
+:not(.prosemirror-flat-list[data-list-kind="ordered"])
+  + .prosemirror-flat-list[data-list-kind="ordered"] {
+  counter-reset: prosemirror-flat-list-counter;
+}
+
+@supports (counter-set: prosemirror-flat-list-counter 1) {
+  :is(
+    .prosemirror-flat-list[data-list-kind="ordered"]:first-child,
+    :not(.prosemirror-flat-list[data-list-kind="ordered"])
+      + .prosemirror-flat-list[data-list-kind="ordered"]
+  )[data-list-order] {
+    counter-set: prosemirror-flat-list-counter var(--prosemirror-flat-list-order);
+  }
+}
+
+@supports not (counter-set: prosemirror-flat-list-counter 1) {
+  :is(
+    .prosemirror-flat-list[data-list-kind="ordered"]:first-child,
+    :not(.prosemirror-flat-list[data-list-kind="ordered"])
+      + .prosemirror-flat-list[data-list-kind="ordered"]
+  )[data-list-order] {
+    counter-increment: prosemirror-flat-list-counter var(--prosemirror-flat-list-order);
+  }
+}
+
+/* ── Task list marker ── */
+
+.prosemirror-flat-list[data-list-kind="task"] > .list-marker,
+.prosemirror-flat-list[data-list-kind="task"] > .list-marker * {
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Table  (vendored: prosekit@0.19.0 — extensions/table/style.css)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Shared sizing for table */
+.ProseMirror table {
+  inline-size: var(--editor-table-width, fit-content);
+  min-inline-size: fit-content;
+  max-inline-size: var(--editor-table-max-width, none);
+}
+
+.ProseMirror .tableWrapper {
+  overflow: hidden;
+  max-inline-size: var(--editor-table-max-width, none);
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  overflow: hidden;
+  table-layout: auto;
+  width: auto;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  box-sizing: border-box;
+  vertical-align: top;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--editor-table-border, var(--color-border));
+  position: relative;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+}
+
+prosekit-table-handle-drop-indicator {
+  background-color: highlighttext;
+}
+
+/* ── Column resize handle ── */
+
+.ProseMirror .column-resize-handle {
+  display: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: text;
+}
+
+/* ── Selected cell (outside .tableWrapper context) ── */
+
+.ProseMirror .selectedCell {
+  --color: 210, 100%, 56%;
+  border: 1px double hsl(var(--color));
+  background-color: hsla(var(--color), 20%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Editor Surface & ScrollArea
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * Flex column so the editor wrapper (flex-1) fills the viewport height,
+ * preserving ProseMirror's `min-height: 100%` click-to-focus area.
+ * `width` switches between `100%` (word-wrap on) and `max-content`
+ * (word-wrap off, content expands → horizontal scroll).
+ */
+[data-editor-scroll] [data-scroll-area-content] {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: var(--editor-content-width, auto);
+  min-width: 100%;
+}
+
+.ProseMirror {
+  position: relative;
+  outline: 0;
+  padding: 2rem 2.5rem 15vh;
+  min-height: 100%;
+  font-family: var(--font-editor);
+  font-size: var(--editor-font-size, 0.9375rem);
+  line-height: var(--editor-line-height, 1.7);
+  color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
+  overflow-wrap: var(--editor-overflow-wrap, break-word);
+  white-space: var(--editor-white-space, break-spaces);
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+  flex-direction: column;
+  display: flex;
+}
+
+.ProseMirror:focus {
+  outline: 0;
+}
+
+.ProseMirror [draggable][contenteditable="false"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.ProseMirror img.ProseMirror-separator {
+  display: inline !important;
+  border: 0 !important;
+  margin: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Typography
+   ───────────────────────────────────────────────────────────────────────────
+   All sizes use em/rem — never px — so everything scales with
+   --editor-font-size.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Paragraphs ── */
+
+.ProseMirror p {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0 0 0.5em;
+  padding: 0.15em 0.125em;
+}
+
+/* ── Headings ── */
+
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: 0.15em 0.125em;
+}
+
+.ProseMirror h1 {
+  font-size: 1.75em;
+  line-height: 1.2;
+  margin: 1.6em 0 0.25em;
+}
+
+.ProseMirror h2 {
+  font-size: 1.375em;
+  line-height: 1.3;
+  margin: 1.4em 0 0.25em;
+}
+
+.ProseMirror h3,
+.ProseMirror h4 {
+  font-size: 1.125em;
+  line-height: 1.35;
+  margin: 1.2em 0 0.15em;
+}
+
+.ProseMirror h4 {
+  font-size: 1em;
+  margin: 1em 0 0.15em;
+}
+
+.ProseMirror h5 {
+  font-size: 0.875em;
+  line-height: 1.3;
+  margin: 0.9em 0 0.15em;
+}
+
+.ProseMirror h6 {
+  font-size: 0.8125em;
+  line-height: 1.3;
+  margin: 0.8em 0 0.15em;
+  color: var(--color-text-secondary);
+}
+
+.ProseMirror blockquote > :first-child,
+.ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+/* ── Inline formatting ── */
+
+.ProseMirror strong {
+  font-weight: 700;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+/* Inline / backtick `code` — not link accent; uses dedicated tokens in index.css */
+.ProseMirror code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 0.15em 0.35em;
+  border-radius: var(--radius-xs);
+  color: var(--color-editor-inline-code-fg);
+  background: var(--color-editor-inline-code-bg);
+}
+
+/* Links inside inline code: keep “code” look, not `a` (accent) */
+.ProseMirror code a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.125em;
+}
+
+.ProseMirror del,
+.ProseMirror s,
+.ProseMirror strike {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+/* ── Links ── */
+
+.ProseMirror a {
+  color: var(--color-text-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.125em;
+  cursor: pointer;
+}
+
+.ProseMirror a:hover {
+  text-decoration-thickness: 0.125em;
+}
+
+/* ── Horizontal rule ── */
+
+.ProseMirror hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1.5em 0;
+}
+
+.ProseMirror .prosekit-horizontal-rule {
+  border-width: 0;
+  margin: 0.0625em 0;
+  padding: 0.75em 0.125em;
+  line-height: 0;
+}
+
+.ProseMirror .prosekit-horizontal-rule hr {
+  margin: 0;
+}
+
+.ProseMirror .prosekit-horizontal-rule.prosekit-page-break hr {
+  border-style: dashed;
+  font-size: 0.75em;
+}
+
+.ProseMirror .prosekit-horizontal-rule.prosekit-page-break::after {
+  font-size: 0.75em;
+  color: var(--color-border);
+}
+
+/* ── Blockquote (single left rule — no double bar) ── */
+
+.ProseMirror blockquote {
+  margin: 0.6em 0;
+  padding: 0.45em 0.6em 0.45em 1rem;
+  border-left: 2px solid var(--color-border);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  color: var(--color-text-secondary);
+  background: var(--color-ghost-hover);
+  font-style: normal;
+}
+
+.ProseMirror blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* ── Editable fenced code block chrome ────────────────────────────────── */
+
+[data-kuku-code-block] {
+  margin: 0.75em 0;
+}
+
+[data-kuku-code-block-editor][hidden],
+[data-kuku-code-block-preview][hidden] {
+  display: none;
+}
+
+[data-kuku-code-block-editor] {
+  color: var(--color-editor-code-fg);
+  background: var(--color-editor-code-bg);
+  border: 1px solid var(--color-editor-code-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+[data-kuku-code-block-fence-line] {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  color: var(--color-editor-code-fg);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  padding: 0.125rem 1rem 0;
+  white-space: pre;
+}
+
+[data-kuku-code-block-closing-fence] {
+  padding: 0 1rem 0.125rem;
+}
+
+[data-kuku-code-mirror-block] [data-kuku-code-block-fence-line] {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+[data-kuku-code-mirror-block][data-kuku-code-block-fence-visible]
+  [data-kuku-code-block-fence-line] {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+[data-kuku-code-block-fence-marker] {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  user-select: none;
+}
+
+[data-kuku-code-block-language-input] {
+  flex: 1 1 auto;
+  min-width: 3rem;
+  color: inherit;
+  caret-color: var(--color-text-primary);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+[data-kuku-code-block-language-input]::placeholder {
+  color: var(--color-text-muted);
+}
+
+[data-kuku-code-block-language-input]::selection {
+  background-color: var(--color-accent-dim);
+  color: inherit;
+}
+
+[data-kuku-code-mirror-host] {
+  color: var(--color-editor-code-fg);
+  background: transparent;
+}
+
+[data-kuku-code-mirror-host] .cm-editor {
+  color: var(--color-editor-code-fg);
+  background: transparent;
+  caret-color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  outline: 0;
+}
+
+[data-kuku-code-mirror-host] .cm-content {
+  padding: 0 1rem;
+  caret-color: var(--color-text-primary);
+}
+
+[data-kuku-code-mirror-host] .cm-line {
+  padding: 0;
+}
+
+[data-kuku-code-mirror-host] .cm-focused {
+  outline: 0;
+}
+
+[data-kuku-code-mirror-host] .cm-focused .cm-cursor,
+[data-kuku-code-mirror-host] .cm-cursor,
+[data-kuku-code-mirror-host] .cm-dropCursor {
+  border-left-color: var(--color-text-primary);
+}
+
+[data-kuku-code-mirror-host] .cm-focused .cm-selectionBackground,
+[data-kuku-code-mirror-host] .cm-selectionBackground,
+[data-kuku-code-mirror-host] .cm-content ::selection {
+  background-color: var(--color-accent-dim);
+  color: inherit;
+}
+
+[data-kuku-code-block-preview] {
+  position: relative;
+  color: var(--color-editor-code-fg);
+  background: var(--color-editor-code-bg);
+  border: 1px solid var(--color-editor-code-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  padding: 1rem;
+}
+
+[data-kuku-code-block-preview]:has([data-kuku-code-block-rendered-code]) {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+[data-kuku-code-block-deferred-preview] {
+  display: block;
+  min-height: 10rem;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--color-editor-code-fg) 8%, transparent);
+}
+
+[data-kuku-code-block-preview-toolbar] {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+[data-kuku-code-block-preview]:hover [data-kuku-code-block-preview-toolbar],
+[data-kuku-code-block-preview]:focus-within [data-kuku-code-block-preview-toolbar] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-kuku-code-block-edit-button] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+[data-kuku-code-block-edit-button] > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+[data-kuku-code-block-edit-button]:hover {
+  background: var(--color-ghost-hover);
+}
+
+/* ── Fenced code blocks (editor + chat `.kuku-md-code-fence`)
+   Do not use :where() on the `pre` parent here — it drops selector specificity
+   below `.ProseMirror code`, so inline “chip” styles (background, padding,
+   accent text) would bleed into `pre > code`. */
+
+.ProseMirror pre,
+.kuku-md-code-fence > pre {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-editor-code-fg);
+  background: var(--color-editor-code-bg);
+  border: 1px solid var(--color-editor-code-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-editor-code-inset, none);
+  box-sizing: border-box;
+  width: var(--editor-code-width, 100%);
+  min-width: 100%;
+  padding: 0.75rem 1rem;
+  margin: 0.75em 0;
+  overflow-x: var(--editor-code-overflow-x, auto);
+  overflow-y: hidden;
+  white-space: pre;
+  hyphens: none;
+  word-break: normal;
+  word-spacing: normal;
+  overflow-wrap: normal;
+  tab-size: var(--editor-tab-size, 4);
+  font-synthesis: none;
+  font-feature-settings: "calt" 0;
+}
+
+[data-kuku-code-block] > pre {
+  margin: 0;
+  border-radius: 0;
+}
+
+[data-kuku-code-block-rendered-code] > pre {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.kuku-md-code-fence > pre {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Inner `code` must override `.ProseMirror code` (inline) — .ProseMirror pre > code = (0,1,2) */
+.ProseMirror pre > code,
+.kuku-md-code-fence > pre > code {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 400;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: var(--color-editor-code-fg);
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  white-space: inherit;
+  tab-size: inherit;
+  box-shadow: none;
+}
+
+.ProseMirror pre:has(> code),
+.kuku-md-code-fence > pre:has(> code) {
+  direction: ltr;
+}
+
+/* Optional highlighter hooks — same dual selector (no :where on `pre` root) */
+.ProseMirror pre :is(.token.comment, .token.prolog, .token.cdata),
+.kuku-md-code-fence > pre :is(.token.comment, .token.prolog, .token.cdata) {
+  color: var(--syntax-comment);
+}
+.ProseMirror pre :is(.token.keyword),
+.kuku-md-code-fence > pre :is(.token.keyword) {
+  color: var(--syntax-keyword);
+}
+.ProseMirror pre :is(.token.operator),
+.kuku-md-code-fence > pre :is(.token.operator) {
+  color: var(--syntax-operator);
+}
+.ProseMirror pre :is(.token.string, .token.char),
+.kuku-md-code-fence > pre :is(.token.string, .token.char) {
+  color: var(--syntax-string);
+}
+.ProseMirror pre :is(.token.function, .token.function .token),
+.kuku-md-code-fence > pre :is(.token.function, .token.function .token) {
+  color: var(--syntax-function);
+}
+.ProseMirror pre :is(.token.number, .token.boolean),
+.kuku-md-code-fence > pre :is(.token.number, .token.boolean) {
+  color: var(--syntax-number);
+}
+.ProseMirror pre :is(.token.class-name, .token.maybe-class-name),
+.kuku-md-code-fence > pre :is(.token.class-name, .token.maybe-class-name) {
+  color: var(--syntax-type);
+}
+.ProseMirror pre :is(.token.constant, .token.symbol),
+.kuku-md-code-fence > pre :is(.token.constant, .token.symbol) {
+  color: var(--syntax-constant);
+}
+.ProseMirror pre :is(.token.regex, .token.important),
+.kuku-md-code-fence > pre :is(.token.regex, .token.important) {
+  color: var(--syntax-regexp);
+}
+.ProseMirror pre :is(.token.property, .token.attr-name),
+.kuku-md-code-fence > pre :is(.token.property, .token.attr-name) {
+  color: var(--syntax-property);
+}
+.ProseMirror pre :is(.token.punctuation),
+.kuku-md-code-fence > pre :is(.token.punctuation) {
+  color: var(--syntax-punctuation);
+}
+.ProseMirror pre :is(.token.tag, .token.namespace),
+.kuku-md-code-fence > pre :is(.token.tag, .token.namespace) {
+  color: var(--syntax-tag);
+}
+.ProseMirror pre :is(.hljs),
+.kuku-md-code-fence > pre :is(.hljs),
+[data-kuku-code-mirror-host] :is(.hljs) {
+  color: var(--syntax-default);
+  background: transparent;
+}
+.ProseMirror pre :is(.hljs-comment, .hljs-quote),
+.kuku-md-code-fence > pre :is(.hljs-comment, .hljs-quote),
+[data-kuku-code-mirror-host] :is(.hljs-comment, .hljs-quote) {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+.ProseMirror pre :is(.hljs-doctag, .hljs-keyword, .hljs-formula),
+.kuku-md-code-fence > pre :is(.hljs-doctag, .hljs-keyword, .hljs-formula),
+[data-kuku-code-mirror-host] :is(.hljs-doctag, .hljs-keyword, .hljs-formula) {
+  color: var(--syntax-keyword);
+}
+.ProseMirror pre :is(.hljs-section, .hljs-name, .hljs-selector-tag, .hljs-deletion, .hljs-subst),
+.kuku-md-code-fence
+  > pre
+  :is(.hljs-section, .hljs-name, .hljs-selector-tag, .hljs-deletion, .hljs-subst),
+[data-kuku-code-mirror-host]
+  :is(.hljs-section, .hljs-name, .hljs-selector-tag, .hljs-deletion, .hljs-subst) {
+  color: var(--syntax-tag);
+}
+.ProseMirror pre :is(.hljs-literal),
+.kuku-md-code-fence > pre :is(.hljs-literal),
+[data-kuku-code-mirror-host] :is(.hljs-literal) {
+  color: var(--syntax-literal, var(--syntax-constant));
+}
+.ProseMirror pre :is(.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute),
+.ProseMirror pre :is(.hljs-meta .hljs-string),
+.kuku-md-code-fence > pre :is(.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute),
+.kuku-md-code-fence > pre :is(.hljs-meta .hljs-string),
+[data-kuku-code-mirror-host] :is(.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute),
+[data-kuku-code-mirror-host] :is(.hljs-meta .hljs-string) {
+  color: var(--syntax-string);
+}
+.ProseMirror
+  pre
+  :is(
+    .hljs-attr,
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-selector-class,
+    .hljs-selector-attr,
+    .hljs-selector-pseudo,
+    .hljs-number
+  ),
+.kuku-md-code-fence
+  > pre
+  :is(
+    .hljs-attr,
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-selector-class,
+    .hljs-selector-attr,
+    .hljs-selector-pseudo,
+    .hljs-number
+  ),
+[data-kuku-code-mirror-host]
+  :is(
+    .hljs-attr,
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-selector-class,
+    .hljs-selector-attr,
+    .hljs-selector-pseudo,
+    .hljs-number
+  ) {
+  color: var(--syntax-number);
+}
+.ProseMirror
+  pre
+  :is(.hljs-symbol, .hljs-bullet, .hljs-link, .hljs-meta, .hljs-selector-id, .hljs-title),
+.kuku-md-code-fence
+  > pre
+  :is(.hljs-symbol, .hljs-bullet, .hljs-link, .hljs-meta, .hljs-selector-id, .hljs-title),
+[data-kuku-code-mirror-host]
+  :is(.hljs-symbol, .hljs-bullet, .hljs-link, .hljs-meta, .hljs-selector-id, .hljs-title) {
+  color: var(--syntax-title);
+}
+.ProseMirror pre :is(.hljs-built_in, .hljs-title.class_, .hljs-class .hljs-title),
+.kuku-md-code-fence > pre :is(.hljs-built_in, .hljs-title.class_, .hljs-class .hljs-title),
+[data-kuku-code-mirror-host] :is(.hljs-built_in, .hljs-title.class_, .hljs-class .hljs-title) {
+  color: var(--syntax-builtin);
+}
+.ProseMirror pre :is(.hljs-function .hljs-title),
+.kuku-md-code-fence > pre :is(.hljs-function .hljs-title),
+[data-kuku-code-mirror-host] :is(.hljs-function .hljs-title) {
+  color: var(--syntax-function);
+}
+.ProseMirror pre :is(.hljs-operator),
+.kuku-md-code-fence > pre :is(.hljs-operator),
+[data-kuku-code-mirror-host] :is(.hljs-operator) {
+  color: var(--syntax-operator);
+}
+.ProseMirror pre :is(.hljs-emphasis),
+.kuku-md-code-fence > pre :is(.hljs-emphasis),
+[data-kuku-code-mirror-host] :is(.hljs-emphasis) {
+  font-style: italic;
+}
+.ProseMirror pre :is(.hljs-strong),
+.kuku-md-code-fence > pre :is(.hljs-strong),
+[data-kuku-code-mirror-host] :is(.hljs-strong) {
+  font-weight: 700;
+}
+.ProseMirror pre :is(.hljs-link),
+.kuku-md-code-fence > pre :is(.hljs-link),
+[data-kuku-code-mirror-host] :is(.hljs-link) {
+  text-decoration: underline;
+}
+
+/*
+ * Native inner scroll surfaces inside the editor intentionally stay native.
+ * Today this is primarily code blocks; future native editor scrollers should
+ * opt in with `.editor-native-scrollbar` or `[data-editor-native-scrollbar]`.
+ */
+.ProseMirror
+  :where(pre, .editor-native-scrollbar, [data-editor-native-scrollbar])::-webkit-scrollbar {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--native-scrollbar-size, 8px);
+  height: var(--native-scrollbar-size, 8px);
+}
+
+.ProseMirror
+  :where(pre, .editor-native-scrollbar, [data-editor-native-scrollbar])::-webkit-scrollbar-corner {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.ProseMirror
+  :where(pre, .editor-native-scrollbar, [data-editor-native-scrollbar])::-webkit-scrollbar-track {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(
+    --native-scrollbar-track,
+    color-mix(in srgb, var(--color-text-muted) 6%, transparent)
+  );
+  border-radius: 0 !important;
+}
+
+.ProseMirror
+  :where(pre, .editor-native-scrollbar, [data-editor-native-scrollbar])::-webkit-scrollbar-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(
+    --native-scrollbar-thumb,
+    color-mix(in srgb, var(--color-text-muted) 28%, transparent)
+  );
+  border-radius: 0 !important;
+}
+
+.ProseMirror
+  :where(
+    pre,
+    .editor-native-scrollbar,
+    [data-editor-native-scrollbar]
+  )::-webkit-scrollbar-thumb:hover {
+  background-color: var(
+    --native-scrollbar-thumb-hover,
+    color-mix(in srgb, var(--color-text-muted) 42%, transparent)
+  );
+}
+
+.ProseMirror
+  :where(
+    pre,
+    .editor-native-scrollbar,
+    [data-editor-native-scrollbar]
+  )::-webkit-scrollbar-thumb:active {
+  background-color: var(
+    --native-scrollbar-thumb-active,
+    color-mix(in srgb, var(--color-text-muted) 52%, transparent)
+  );
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .ProseMirror :where(pre, .editor-native-scrollbar, [data-editor-native-scrollbar]) {
+    scrollbar-width: auto;
+    scrollbar-color: var(
+        --native-scrollbar-thumb,
+        color-mix(in srgb, var(--color-text-muted) 28%, transparent)
+      )
+      var(--native-scrollbar-track, transparent);
+  }
+}
+
+/* ── Images & video ── */
+
+.ProseMirror img:not(.ProseMirror-separator),
+.ProseMirror video {
+  width: min-content;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75em 0;
+  border-radius: 0;
+}
+
+.ProseMirror img:not(.ProseMirror-separator).ProseMirror-selectednode {
+  outline: 2px solid var(--color-border-selected);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   List–Heading Alignment
+   ───────────────────────────────────────────────────────────────────────────
+   Align list markers / ordered-number baselines with heading content
+   when a heading is the first child of a list item.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h1)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h1) > .list-marker {
+  top: calc(1.6em * 1.75 + 0.15em * 1.75);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h2)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h2) > .list-marker {
+  top: calc(1.4em * 1.375 + 0.15em * 1.375);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h3)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h3) > .list-marker {
+  top: calc(1.2em * 1.125 + 0.15em * 1.125);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h4)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h4) > .list-marker {
+  top: calc(1em * 1 + 0.15em * 1);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h5)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h5) > .list-marker {
+  top: calc(0.9em * 0.875 + 0.15em * 0.875);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h6)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > h6) > .list-marker {
+  top: calc(0.8em * 0.8125 + 0.15em * 0.8125);
+}
+
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > p)::before,
+.ProseMirror .prosemirror-flat-list:has(> div.list-content > p) > .list-marker {
+  top: 0.15em;
+}
+
+.ProseMirror .prosemirror-flat-list[data-list-kind="ordered"]::before {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Table (Kuku overrides)
+   ───────────────────────────────────────────────────────────────────────────
+   Borders, selected-cell highlight, and resize-handle theming applied
+   inside .tableWrapper for higher specificity.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .tableWrapper table,
+.ProseMirror .tableWrapper td,
+.ProseMirror .tableWrapper th,
+.ProseMirror .tableWrapper tr {
+  border: 1px solid var(--editor-table-border, var(--color-border));
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.ProseMirror .tableWrapper .selectedCell {
+  border: 1px solid var(--prosekit-outline-color, hsl(250 100% 60%));
+  background-color: var(--prosekit-node-selection-color, hsl(250 100% 60% / 0.1));
+  border-style: double;
+}
+
+.ProseMirror .tableWrapper .column-resize-handle {
+  outline-color: var(--prosekit-outline-color, hsl(250 100% 60%));
+  background-color: var(--prosekit-outline-color, hsl(250 100% 60%));
+  outline-width: 1px;
+  outline-style: solid;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Task Checkbox
+   ───────────────────────────────────────────────────────────────────────────
+   Custom checkbox built with a hidden <input> + visual <span> control.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kuku-task-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5em;
+  block-size: 1.5em;
+  flex: none;
+  cursor: pointer;
+}
+
+.kuku-task-checkbox[data-disabled] {
+  cursor: default;
+}
+
+.kuku-task-checkbox__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.kuku-task-checkbox__control {
+  position: relative;
+  inline-size: 1em;
+  block-size: 1em;
+  border: 1px solid var(--color-border-focused);
+  border-radius: 0.3125em;
+  background: var(--color-bg-primary);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+/* Checkmark (pseudo-element) */
+.kuku-task-checkbox__control::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  inline-size: 0.4375em;
+  block-size: 0.25em;
+  border: 2px solid var(--color-bg-primary);
+  border-top: 0;
+  border-right: 0;
+  opacity: 0;
+  transform: translate(-52%, -58%) rotate(-45deg) scale(0.9);
+  transform-origin: center;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.kuku-task-checkbox:not([data-disabled]):hover .kuku-task-checkbox__control {
+  border-color: var(--color-border-selected);
+  background: var(--color-bg-secondary);
+}
+
+.kuku-task-checkbox__input:checked + .kuku-task-checkbox__control {
+  border-color: var(--color-text-primary);
+  background: var(--color-text-primary);
+}
+
+.kuku-task-checkbox__input:checked + .kuku-task-checkbox__control::after {
+  opacity: 1;
+  transform: translate(-52%, -58%) rotate(-45deg) scale(1);
+}
+
+.kuku-task-checkbox:not([data-disabled]):hover
+  .kuku-task-checkbox__input:checked
+  + .kuku-task-checkbox__control {
+  border-color: var(--color-text-primary);
+  background: var(--color-text-primary);
+}
+
+.kuku-task-checkbox__input:focus-visible + .kuku-task-checkbox__control {
+  box-shadow:
+    0 0 0 0.125em var(--color-bg-primary),
+    0 0 0 0.25em var(--color-border-selected);
+}
+
+.ProseMirror .prosemirror-flat-list[data-list-kind="task"] > .list-marker {
+  display: flex;
+  justify-content: center;
+}
+
+.kuku-markdown-task-item-content > :first-child {
+  margin-top: 0;
+}
+
+.kuku-markdown-task-item-content > :last-child {
+  margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Selection & Node Highlight
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .ProseMirror-selectednode {
+  outline-color: var(--prosekit-outline-color, hsl(250 100% 60%));
+  background-color: var(--prosekit-node-selection-color, hsl(250 100% 60% / 0.1));
+  border-radius: 0.125em;
+  outline-width: 1px;
+  outline-style: solid;
+}
+
+.ProseMirror pre.ProseMirror-selectednode {
+  border-radius: var(--radius-xs);
+}
+
+/* Native ::selection is suppressed — all selection visuals are rendered
+   by the custom selection highlight plugin (blur_selection.ts) using
+   inline decorations. This prevents full-width backgrounds on block-level
+   wrapper divs (e.g. nested list containers). */
+.ProseMirror ::selection {
+  background: transparent;
+  color: inherit;
+}
+
+/* Active selection (editor focused — .pm-focused toggled via JS) */
+.ProseMirror.pm-focused .pm-selection {
+  background: var(--color-accent-dim);
+}
+
+/* Preserved selection (editor blurred — dimmed but still visible) */
+.ProseMirror:not(.pm-focused) .pm-selection {
+  background: var(--color-accent-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Placeholder
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-text-placeholder);
+}
+
+.ProseMirror .prosekit-placeholder::before {
+  content: attr(data-placeholder);
+  opacity: 0.3;
+  pointer-events: none;
+  height: 0;
+  position: absolute;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Gapcursor
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .ProseMirror-gapcursor {
+  position: relative;
+}
+
+.ProseMirror .ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -0.125em;
+  width: 1.25em;
+  border-top: 1px solid var(--color-text-primary);
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Math Blocks
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .prosemirror-math-block:not(.prosemirror-math-head-inside) {
+  margin: 0.5em 0;
+}
+
+.ProseMirror .prosemirror-math-block .prosemirror-math-display {
+  padding: 0.5em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Autocomplete & Virtual Selection
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ProseMirror .prosekit-autocomplete-match {
+  background-color: var(--prosekit-autocomplete-color, rgba(128, 128, 128, 0.1));
+  box-shadow: 0 0 0 0.3em var(--prosekit-autocomplete-color, rgba(128, 128, 128, 0.1));
+  border-radius: 0.1em;
+}
+
+.ProseMirror .prosekit-virtual-selection {
+  background-color: rgba(136, 136, 136, 0.3);
+  border-radius: 0.125em;
+  box-shadow: 0 0 0 0.125em rgba(136, 136, 136, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Misc
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Typographic ligature widget decorations (e.g. `->` → `→`).
+   Visual-only — does not modify document content. */
+.kuku-ligature {
+  font-family: var(--font-editor);
+  color: var(--color-text-primary);
+  cursor: text;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Prosekit node-view wrapper — must be display:contents to avoid
+   breaking ProseMirror's DOM assumptions. */
+.ProseMirror div[data-node-view-root="true"] {
+  display: contents;
+}

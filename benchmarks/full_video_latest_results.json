@@ -1,0 +1,35 @@
+{
+  "id": "bNHlTKsCkI8",
+  "title": "[진개팟 #31] 점차 균형을 잡아가는 성장형 래퍼...!",
+  "referenceQuality": "manual",
+  "language": "Korean",
+  "audioSeconds": 3197.283,
+  "referenceCharacters": 16950,
+  "referenceWords": 6227,
+  "baseline": {
+    "windowSeconds": 20,
+    "cer": 0.2005,
+    "wer": 0.3213,
+    "continuousWer": 0.2618,
+    "groupedCer": 0.1342,
+    "alignmentGroupSeconds": 400
+  },
+  "improved": {
+    "windowSeconds": 20,
+    "cer": 0.1922,
+    "wer": 0.3035,
+    "continuousWer": 0.2435,
+    "groupedCer": 0.1253,
+    "alignmentGroupSeconds": 400,
+    "realTimeFactor": 0.07
+  },
+  "productionWorkerReplay": {
+    "processedAudioSeconds": 3197.283,
+    "continuousWer": 0.241,
+    "textCharacters": 24962,
+    "speakerSegments": 35,
+    "anonymousSpeakers": 4,
+    "lastTranscriptEndSeconds": 3180,
+    "captionedSpeechAfterLastTranscript": false
+  }
+}

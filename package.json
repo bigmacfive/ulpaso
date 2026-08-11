@@ -1,0 +1,70 @@
+{
+  "name": "ulpaso",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local-first Markdown editor with on-device meeting transcription for macOS",
+  "license": "MIT",
+  "homepage": "https://github.com/bigmacfive/ulpaso#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bigmacfive/ulpaso.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bigmacfive/ulpaso/issues"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:markdown": "pnpm --filter @ulpaso/markdown build",
+    "build": "pnpm build:markdown && tsc && vite build",
+    "check": "pnpm check:frontend && pnpm check:rust && pnpm test:python && pnpm check:benchmarks",
+    "check:frontend": "pnpm build:markdown && tsc --noEmit && vitest run",
+    "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings && cargo test --manifest-path src-tauri/Cargo.toml",
+    "icon:macos": "./scripts/export-macos-icon.sh",
+    "icon:macos:source": "node scripts/generate-macos-icon.mjs",
+    "test": "vitest run",
+    "test:python": "PYTHONPATH=scripts python3 -m unittest scripts/test_podcast_asr_benchmark.py scripts/test_full_video_asr_benchmark.py scripts/test_replay_meeting_worker.py scripts/test_worker_protocol_e2e.py scripts/test_prepare_benchmark_assets.py",
+    "test:python:worker": "PYTHONPATH=src-tauri/resources/asr src-tauri/resources/asr-runtime/bin/python3 -m unittest src-tauri/resources/asr/test_asr_worker.py src-tauri/resources/asr/test_asr_artifacts.py",
+    "check:benchmarks": "PYTHONPATH=scripts python3 scripts/validate_benchmarks.py && PYTHONPATH=scripts python3 -m unittest scripts/test_validate_benchmarks.py",
+    "prepare:asr-runtime": "./scripts/prepare-asr-runtime.sh",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --config src-tauri/tauri.release.conf.json",
+    "tauri:build:unsigned": "tauri build --config src-tauri/tauri.release.conf.json --no-sign"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.8",
+    "@tabler/icons-solidjs": "^3.46.0",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@ulpaso/markdown": "workspace:*",
+    "highlight.js": "^11.11.2",
+    "prosekit": "^0.19.0",
+    "prosemirror-flat-list": "^0.5.8",
+    "prosemirror-tables": "^1.8.5",
+    "remark-directive": "^4.0.0",
+    "solid-js": "^1.9.9"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/mdast": "^4.0.4",
+    "jsdom": "^30.0.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.3",
+    "vite-plugin-solid": "^2.11.8",
+    "vitest": "^4.1.10"
+  }
+}

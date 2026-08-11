@@ -1,0 +1,37 @@
+# Changelog
+
+All notable changes to Ulpaso will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project intends to use [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- Local-first WYSIWYG Markdown editing with GFM support.
+- On-device microphone and system-audio transcription with speaker organization.
+- English, Korean, and Japanese interfaces.
+- Draft recovery, recent documents, focus mode, command palette, and light/dark themes.
+- Reproducible unsigned macOS packaging and a native-style application icon.
+- First-use model size, network, local-processing, and free-disk disclosure.
+- A publishable `@ulpaso/markdown` workspace package with a documented extension API.
+- Automated unsigned prerelease builds, checksums, benchmark validation, and a
+  real mock-worker protocol test.
+- A centralized macOS shortcut set with an accessible in-app guide in Settings.
+
+### Changed
+
+- Split audio mixing, recovery, worker framing, resource checks, model artifact
+  verification, and major UI dialogs into focused modules with unit coverage.
+- Reduced the production JavaScript entry from roughly 1.9 MB to 324 KB by
+  registering syntax languages explicitly, splitting editor chunks, and using
+  native Solid/DOM loaders instead of React bridges.
+- Validate downloaded model files against committed revisions and SHA-256
+  digests before local inference.
+
+### Security
+
+- Pinned model revisions and Python runtime dependencies.
+- Checksum verification for the pinned `uv` bootstrap archive.
+- Checksum verification for every pinned speech and diarization model file.
+- Restricted Tauri capability and content-security policies.
+- JavaScript and Rust dependency auditing in CI, with reviewed RustSec
+  exceptions documented in `.cargo/audit.toml`.
