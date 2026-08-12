@@ -1,0 +1,19 @@
+{
+  "name": "Ulpaso",
+  "short_name": "Ulpaso",
+  "description": "A free, open-source Mac app for on-device meeting transcription and local Markdown notes",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

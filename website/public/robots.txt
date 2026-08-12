@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ulpaso.app/sitemap.xml
+Host: ulpaso.app

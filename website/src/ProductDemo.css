@@ -1,0 +1,115 @@
+.product-demo {
+  width: 100%;
+  height: 610px;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #fefefe;
+  color: #333;
+  font-family: "Goorm Sans", "Apple SD Gothic Neo", sans-serif;
+  text-align: left;
+  user-select: none;
+}
+
+.actual-titlebar {
+  position: relative;
+  height: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  background: #fefefe;
+}
+
+.actual-traffic-lights { width: 72px; flex: 0 0 72px; display: flex; align-items: center; gap: 5px; padding-left: 14px; color: #aaa; }
+.actual-traffic-lights svg:nth-child(2) { color: #888; }
+.actual-traffic-lights svg:nth-child(3) { color: #686868; }
+.actual-document-title {
+  position: absolute;
+  inset: 0 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #4f4f4f;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -.055em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.actual-title-actions { margin-left: auto; height: 28px; display: flex; align-items: center; gap: 3px; padding: 0 7px; color: #747474; }
+.actual-title-actions button { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; }
+.actual-title-actions button.is-active { background: rgba(0, 0, 0, .1); color: #333; }
+.actual-meeting-pill { height: 24px; min-width: 102px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid #d9d9d9; border-radius: 999px; background: rgba(255, 255, 255, .88); color: #5b5b5b; font-size: 9px; white-space: nowrap; }
+.actual-meeting-dot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #333; box-shadow: 0 0 0 3px rgba(51, 51, 51, .1); animation: actual-meeting-pulse 1.8s ease-in-out infinite; }
+
+.actual-editor-pane { height: calc(100% - 28px); overflow: hidden; background: #fefefe; }
+.actual-editor {
+  position: relative;
+  width: min(860px, calc(100% - 60px));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 30px 30px 90px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.actual-editor h1 { margin: 0 0 20px; font-size: 28px; line-height: 1.25; letter-spacing: -.03em; }
+.actual-editor h2 { margin: 0 0 22px; font-size: 21px; line-height: 1.35; letter-spacing: -.02em; }
+.actual-editor p { min-height: 1.6em; margin: 0 0 10px; }
+.actual-editor strong { font-weight: 700; }
+.actual-transcript-segment { margin-bottom: 13px; }
+.actual-transcript-segment p:first-child { margin-bottom: 2px; }
+.actual-transcript-segment p:last-child { color: #414141; }
+.actual-word { display: inline; }
+.actual-word.is-latest { display: inline-block; animation: actual-word-in .5s cubic-bezier(.2, .72, .2, 1) both; }
+.actual-listening { display: inline-block; margin-left: 3px !important; color: #747474; opacity: .68; font-style: italic; animation: actual-listening 1.25s ease-in-out infinite; }
+
+.actual-slash-line { position: relative; width: max-content; margin-top: 8px !important; }
+.actual-caret { position: absolute; top: 1px; right: -2px; width: 1px; height: 20px; background: rgba(51, 51, 51, .55); animation: actual-caret-blink 1.08s steps(1, end) infinite; }
+.actual-slash-menu { position: absolute; z-index: 4; top: 72px; left: 30px; width: 320px; max-height: 370px; overflow: hidden; padding: 6px; border: 1px solid rgba(217, 217, 217, .88); border-radius: 6px; background: rgba(255, 255, 255, .98); box-shadow: 0 10px 34px rgba(0, 0, 0, .1), 0 2px 8px rgba(0, 0, 0, .06); animation: actual-command-in .18s ease-out both; }
+.actual-slash-list { max-height: 358px; overflow: hidden; padding: 1px 0; }
+.actual-slash-item { min-height: 36px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 9px 5px 7px; border-radius: 5px; color: #333; font-size: 12px; transition: background-color .16s ease; }
+.actual-slash-item.is-selected { background: rgba(51, 51, 51, .08); }
+.actual-slash-icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 4px; background: rgba(51, 51, 51, .045); color: #5b5b5b; }
+.actual-slash-item small { color: rgba(91, 91, 91, .78); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 650; }
+.actual-code-block { position: relative; margin: 12px 0 0; padding: 18px 20px; border: 1px solid #e1e1e1; border-radius: 2px; background: #f8f8f8; color: #333; overflow: hidden; font: 12px/1.72 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; animation: actual-code-in .32s ease both; }
+.actual-code-block::before { content: attr(data-language); position: absolute; top: 8px; right: 12px; color: #747474; font: 8px/1 "Goorm Sans", sans-serif; text-transform: uppercase; }
+
+@keyframes actual-meeting-pulse { 50% { opacity: .48; } }
+@keyframes actual-word-in { from { opacity: .08; filter: blur(3px); transform: translateY(2px); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes actual-listening { 50% { opacity: .28; } }
+@keyframes actual-caret-blink { 55% { opacity: 0; } }
+@keyframes actual-command-in { from { opacity: 0; transform: translateY(-3px) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes actual-code-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 900px) {
+  .product-demo { height: 570px; }
+  .actual-editor { width: min(760px, calc(100% - 44px)); padding-inline: 24px; }
+  .actual-slash-menu { left: 24px; }
+}
+
+@media (max-width: 680px) {
+  .product-demo { height: 520px; }
+  .actual-traffic-lights { width: 64px; flex-basis: 64px; padding-left: 10px; }
+  .actual-document-title { inset-inline: 70px 150px; justify-content: flex-start; font-size: 10px; }
+  .actual-title-actions { gap: 1px; padding-right: 4px; }
+  .actual-title-actions button:first-of-type { display: none; }
+  .actual-meeting-pill { min-width: 84px; padding-inline: 6px; font-size: 8px; }
+  .actual-editor { width: 100%; padding: 27px 20px 70px; font-size: 12px; }
+  .actual-editor h1 { font-size: 23px; }
+  .actual-editor h2 { font-size: 18px; }
+  .actual-transcript-segment { margin-bottom: 9px; }
+  .actual-slash-menu { top: 68px; left: 20px; width: min(320px, calc(100% - 40px)); max-height: 323px; }
+  .actual-slash-list { max-height: 311px; }
+  .actual-slash-item { min-height: 31px; padding-block: 3px; }
+  .actual-code-block { padding: 17px 14px; font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actual-meeting-dot,
+  .actual-word.is-latest,
+  .actual-listening,
+  .actual-caret,
+  .actual-slash-menu,
+  .actual-code-block { animation: none !important; }
+}

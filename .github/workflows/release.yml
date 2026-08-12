@@ -115,6 +115,25 @@ jobs:
             --generate-notes \
             --title "Ulpaso ${GITHUB_REF_NAME}"
 
+      - name: Verify landing page download targets this release
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          EXPECTED_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/Ulpaso_${VERSION}_aarch64.dmg"
+          for attempt in {1..20}; do
+            REDIRECT_URL="$(curl --fail --silent --show-error --head --output /dev/null \
+              --write-out '%{redirect_url}' \
+              "https://ulpaso.app/download?release=$GITHUB_REF_NAME&attempt=$attempt")"
+            if [[ "$REDIRECT_URL" == "$EXPECTED_URL" ]]; then
+              echo "Landing download resolves to $REDIRECT_URL"
+              exit 0
+            fi
+            echo "Attempt $attempt resolved to ${REDIRECT_URL:-no redirect}; retrying"
+            sleep 15
+          done
+          echo "Expected landing download to resolve to $EXPECTED_URL" >&2
+          exit 1
+
       - name: Preserve manually triggered build
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
