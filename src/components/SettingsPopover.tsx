@@ -6,8 +6,10 @@ import { SHORTCUT_GROUPS, SHORTCUTS } from "../shortcuts";
 interface SettingsPopoverProps {
   theme: "light" | "dark";
   meetingDescription: string;
+  meetingAutoStartEnabled: boolean;
   onClose(): void;
   onToggleTheme(): void;
+  onToggleMeetingAutoStart(): void;
   onOpenAudioSettings(): void;
 }
 
@@ -100,9 +102,26 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
             }</For>
           </div>
         </div>
-        <div class="settings-row settings-row-static">
+        <div class="settings-row settings-row-meeting">
           <div><strong>{t("settings.meeting")}</strong><span>{props.meetingDescription}</span></div>
-          <button type="button" class="settings-link" onClick={props.onOpenAudioSettings}>{t("settings.audioPermissions")}<Icon name="externalLink" size={12} /></button>
+          <div class="settings-meeting-controls">
+            <div class="settings-segmented" role="group" aria-label={t("settings.meetingAutoStart")}>
+              <button
+                type="button"
+                aria-pressed={props.meetingAutoStartEnabled}
+                classList={{ active: props.meetingAutoStartEnabled }}
+                onClick={() => !props.meetingAutoStartEnabled && props.onToggleMeetingAutoStart()}
+              >{t("settings.on")}</button>
+              <button
+                type="button"
+                aria-pressed={!props.meetingAutoStartEnabled}
+                classList={{ active: !props.meetingAutoStartEnabled }}
+                onClick={() => props.meetingAutoStartEnabled && props.onToggleMeetingAutoStart()}
+              >{t("settings.off")}</button>
+            </div>
+            <span class="settings-meeting-auto-description">{t("settings.meetingAutoStartDescription")}</span>
+            <button type="button" class="settings-link" onClick={props.onOpenAudioSettings}>{t("settings.audioPermissions")}<Icon name="externalLink" size={12} /></button>
+          </div>
         </div>
         <div class="settings-row settings-row-shortcuts">
           <div><strong>{t("settings.shortcuts")}</strong><span>{t("settings.shortcutsDescription")}</span></div>

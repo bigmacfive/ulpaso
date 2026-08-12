@@ -8,6 +8,7 @@ use tauri::Manager;
 
 mod audio_capture;
 mod meeting;
+mod meeting_detection;
 mod updater;
 
 #[cfg(target_os = "macos")]
@@ -96,6 +97,10 @@ pub fn run() {
 
             let controller = meeting::MeetingController::new(app.handle().clone());
             app.manage(controller.clone());
+            let meeting_detector =
+                meeting_detection::MeetingDetectionController::new(app.handle().clone());
+            app.manage(meeting_detector.clone());
+            meeting_detector.spawn();
             updater::spawn_update_check(app.handle().clone());
             if std::env::var("ULPASO_ASR_AUTOSTART").ok().as_deref() == Some("1") {
                 std::thread::spawn(move || {
@@ -157,6 +162,7 @@ pub fn run() {
             meeting::meeting_stop,
             meeting::meeting_cancel,
             meeting::meeting_open_settings,
+            meeting_detection::meeting_detection_status,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Ulpaso")

@@ -18,8 +18,10 @@ describe("SettingsPopover shortcut guide", () => {
       <SettingsPopover
         theme="light"
         meetingDescription="Local models ready"
+        meetingAutoStartEnabled={true}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleMeetingAutoStart={vi.fn()}
         onOpenAudioSettings={vi.fn()}
       />
     ), root);
@@ -47,8 +49,10 @@ describe("SettingsPopover shortcut guide", () => {
       <SettingsPopover
         theme="dark"
         meetingDescription="로컬 모델 준비됨"
+        meetingAutoStartEnabled={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleMeetingAutoStart={vi.fn()}
         onOpenAudioSettings={vi.fn()}
       />
     ), root);
@@ -58,6 +62,31 @@ describe("SettingsPopover shortcut guide", () => {
     expect(guide.textContent).toContain("키보드 단축키");
     expect(guide.textContent).toContain("다른 이름으로 저장");
     expect(Array.from(guide.querySelectorAll("kbd")).map((key) => key.textContent)).toContain("⌘");
+    dispose();
+  });
+
+  it("exposes meeting auto-start as an explicit on/off control", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const onToggleMeetingAutoStart = vi.fn();
+    const dispose = render(() => (
+      <SettingsPopover
+        theme="light"
+        meetingDescription="Local models ready"
+        meetingAutoStartEnabled={true}
+        onClose={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onToggleMeetingAutoStart={onToggleMeetingAutoStart}
+        onOpenAudioSettings={vi.fn()}
+      />
+    ), root);
+
+    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Automatic meeting detection"]')!;
+    const [on, off] = Array.from(group.querySelectorAll<HTMLButtonElement>("button"));
+    expect(on.getAttribute("aria-pressed")).toBe("true");
+    expect(off.getAttribute("aria-pressed")).toBe("false");
+    off.click();
+    expect(onToggleMeetingAutoStart).toHaveBeenCalledOnce();
     dispose();
   });
 });

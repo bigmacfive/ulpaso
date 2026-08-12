@@ -32,6 +32,12 @@ import {
   saveMeetingResourceConsent,
   type MeetingResourceStatus,
 } from "./meeting/resources";
+import {
+  MEETING_AUTO_START_STORAGE_KEY,
+  MeetingAutoStartCoordinator,
+  readMeetingAutoStartPreference,
+  type MeetingDetectionSnapshot,
+} from "./meeting/auto_start";
 import { appShortcutAction, shortcutHint, type AppShortcutAction } from "./shortcuts";
 
 type FileDocument = { path: string | null; content: string };
@@ -105,8 +111,11 @@ export default function App() {
   let allowWindowClose = false;
   let unlistenMeetingState: UnlistenFn | undefined;
   let unlistenMeetingTranscript: UnlistenFn | undefined;
+  let unlistenMeetingDetection: UnlistenFn | undefined;
   let unlistenCloseRequested: UnlistenFn | undefined;
   let meetingErrorPopoverRef: HTMLDivElement | undefined;
+  let meetingStateInitialized = false;
+  let pendingMeetingDetection: MeetingDetectionSnapshot | null = null;
   const [filePath, setFilePath] = createSignal<string | null>(recoveredDraft?.path ?? null);
   const [title, setTitle] = createSignal(documentTitle(currentMarkdown, recoveredDraft?.path ?? null, t("document.untitled")));
   const [dirty, setDirty] = createSignal(Boolean(recoveredDraft));
@@ -127,10 +136,14 @@ export default function App() {
   const [meetingErrorOpen, setMeetingErrorOpen] = createSignal(false);
   const [meetingResources, setMeetingResources] = createSignal<MeetingResourceStatus | null>(null);
   const [pendingMeetingStart, setPendingMeetingStart] = createSignal<PendingMeetingStart | null>(null);
+  const [meetingAutoStartEnabled, setMeetingAutoStartEnabled] = createSignal(
+    readMeetingAutoStartPreference(localStorage.getItem(MEETING_AUTO_START_STORAGE_KEY)),
+  );
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
   const isNative = "__TAURI_INTERNALS__" in window;
   const meetingEditorBridge = new MeetingEditorBridge(meetingTitle);
+  const meetingAutoStart = new MeetingAutoStartCoordinator();
 
   const commands = createMemo(() => commandDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })));
   const filteredCommands = createMemo(() => {
@@ -170,7 +183,10 @@ export default function App() {
       }).then((unlisten) => {
         unlistenCloseRequested = unlisten;
       });
-      void invoke<MeetingState>("meeting_status").then(handleMeetingState).catch(() => undefined);
+      void invoke<MeetingState>("meeting_status").then(handleMeetingState).catch(() => {
+        meetingStateInitialized = true;
+        flushPendingMeetingDetection();
+      });
       void refreshMeetingResources();
       void listen<MeetingState>("meeting://state", (event) => handleMeetingState(event.payload)).then((unlisten) => {
         unlistenMeetingState = unlisten;
@@ -178,6 +194,14 @@ export default function App() {
       void listen<MeetingTranscript>("meeting://transcript", (event) => handleMeetingTranscript(event.payload)).then((unlisten) => {
         unlistenMeetingTranscript = unlisten;
       });
+      void listen<MeetingDetectionSnapshot>("meeting://detection", (event) => {
+        void handleMeetingDetection(event.payload);
+      }).then((unlisten) => {
+        unlistenMeetingDetection = unlisten;
+      });
+      void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
+        .then((snapshot) => void handleMeetingDetection(snapshot))
+        .catch(() => undefined);
     }
   });
 
@@ -189,6 +213,7 @@ export default function App() {
     window.clearInterval(meetingTimer);
     unlistenMeetingState?.();
     unlistenMeetingTranscript?.();
+    unlistenMeetingDetection?.();
     unlistenCloseRequested?.();
   });
 
@@ -205,6 +230,7 @@ export default function App() {
 
   function handleMeetingState(next: MeetingState) {
     setMeeting(next);
+    meetingStateInitialized = true;
     meetingEditorBridge.updateState(next);
     if (next.phase === "error") {
       setMeetingErrorOpen(true);
@@ -212,6 +238,47 @@ export default function App() {
       setMeetingErrorOpen(false);
     }
     if (next.phase === "recording" && !meetingResources()?.ready) void refreshMeetingResources();
+    flushPendingMeetingDetection();
+  }
+
+  function flushPendingMeetingDetection() {
+    if (!meetingStateInitialized || !pendingMeetingDetection) return;
+    const snapshot = pendingMeetingDetection;
+    pendingMeetingDetection = null;
+    void handleMeetingDetection(snapshot);
+  }
+
+  async function handleMeetingDetection(snapshot: MeetingDetectionSnapshot) {
+    if (!meetingStateInitialized) {
+      pendingMeetingDetection = snapshot;
+      return;
+    }
+    const action = meetingAutoStart.observe(snapshot, {
+      enabled: meetingAutoStartEnabled(),
+      busy: isMeetingBusy(),
+    });
+    if (action !== "start") return;
+
+    try {
+      const currentWindow = getCurrentWindow();
+      await currentWindow.show();
+      await currentWindow.setFocus();
+      showToast(t("meeting.autoDetected", { app: snapshot.appName || t("meeting.detectedApp") }), "info", 3600);
+      await toggleMeeting();
+    } catch (error) {
+      showToast(readableError(error, t("meeting.startFailed")), "error", 4200);
+    }
+  }
+
+  function toggleMeetingAutoStart() {
+    const next = !meetingAutoStartEnabled();
+    setMeetingAutoStartEnabled(next);
+    localStorage.setItem(MEETING_AUTO_START_STORAGE_KEY, String(next));
+    if (next && isNative) {
+      void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
+        .then((snapshot) => void handleMeetingDetection(snapshot))
+        .catch(() => undefined);
+    }
   }
 
   function handleMeetingTranscript(payload: MeetingTranscript) {
@@ -618,8 +685,10 @@ export default function App() {
         <SettingsPopover
           theme={theme()}
           meetingDescription={meetingResourceDescription()}
+          meetingAutoStartEnabled={meetingAutoStartEnabled()}
           onClose={() => setSettingsOpen(false)}
           onToggleTheme={toggleTheme}
+          onToggleMeetingAutoStart={toggleMeetingAutoStart}
           onOpenAudioSettings={() => void openMeetingSettings()}
         />
       </Show>

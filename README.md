@@ -14,6 +14,7 @@
 - Supports GFM tables, task lists, links, images, blockquotes, lists, and syntax-highlighted code blocks.
 - Keeps drafts recoverable and asks before discarding unsaved work.
 - Transcribes microphone and system audio locally, then organizes the result for up to four speakers.
+- Detects active Zoom, Teams, Webex, FaceTime, Skype, and supported browser meetings and can start notes automatically.
 - Provides light and dark themes plus English, Korean, and Japanese interfaces.
 - Keeps document contents and meeting audio off application servers.
 
@@ -26,6 +27,8 @@ Documents remain files you choose on your Mac. Meeting audio is processed on-dev
 Temporary meeting recordings are removed after successful completion or cancellation. If transcription stops unexpectedly, recovery audio is retained in the app data directory so the session is not silently lost. See [Privacy and data flow](docs/PRIVACY.md) for exact paths and behavior.
 
 The first meeting downloads about 1.2 GB of pinned speech and speaker models. The app discloses the expected download and installed size before starting; later transcription runs from local files.
+
+Automatic meeting detection is enabled by default and can be disabled in Settings. It requires three consecutive high-confidence checks: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never bypasses the first-use model disclosure, does not restart a session after the user stops it, and does not inspect audio samples before transcription begins.
 
 ## Requirements
 
@@ -68,7 +71,7 @@ pnpm check
 pnpm build
 ```
 
-`pnpm check` builds the reusable Markdown package, runs TypeScript checks, 127 frontend tests, Rust formatting and Clippy, 17 Rust tests, 12 lightweight Python tests including a real mock-worker process exchange, and benchmark-manifest validation. The 27-test model-worker suite can be run after preparing the runtime:
+`pnpm check` builds the reusable Markdown package, runs TypeScript and frontend tests, Rust formatting, Clippy and unit tests, lightweight Python tests including a real mock-worker process exchange, and benchmark-manifest validation. The model-worker suite can be run after preparing the runtime:
 
 ```sh
 pnpm test:python:worker

@@ -51,6 +51,10 @@ real hardware:
 | worker killed once | capture continues and spool is replayed |
 | app killed during capture | WAV header is repaired on next launch |
 | 30+ minute meeting | bounded memory and final transcript reaches the end |
+| Supported desktop meeting app + active microphone | one automatic start after three checks |
+| Browser without a meeting title or microphone use | no automatic start |
+| Duplicate detection or manual stop | no automatic restart in the same session |
+| First automatically detected meeting | model/download disclosure is still shown |
 | cancellation | temporary WAV and PCM are removed |
 
 Use `ULPASO_ASR_DIAGNOSTICS=1` only while testing. Do not attach logs containing

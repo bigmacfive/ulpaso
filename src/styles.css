@@ -411,6 +411,9 @@ kbd { min-width: 22px; padding: 3px 6px; border-radius: 4px; border: 1px solid v
 .settings-segmented button:hover:not(.active) { background: var(--color-ghost-hover); color: var(--text-soft); }
 .settings-segmented button.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.10); }
 .settings-language button { min-width: 29px; padding-left: 5px; padding-right: 5px; }
+.settings-row-meeting { align-items: flex-start; }
+.settings-meeting-controls { flex: 0 0 128px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.settings-meeting-auto-description { color: var(--text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
 .settings-row-static > b { flex: 0 0 auto; color: var(--text-soft); font-size: 11px; font-weight: 500; }
 .settings-row-shortcuts .settings-help-button { width: 29px; height: 29px; border: 1px solid var(--border); }
 .settings-link { height: 29px; flex: 0 0 auto; padding: 0 8px 0 9px; border: 1px solid var(--border); border-radius: 5px; display: flex; align-items: center; gap: 5px; background: transparent; color: var(--text-soft); cursor: pointer; font-size: 10px; transition: background-color .12s ease, border-color .12s ease, color .12s ease; }

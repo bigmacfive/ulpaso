@@ -16,6 +16,7 @@ Ulpaso is a macOS Tauri application with a SolidJS/ProseMirror frontend and a Ru
 
 - `src-tauri/src/lib.rs` exposes narrow document open/save commands and configures application/window lifecycle.
 - `src-tauri/src/meeting.rs` owns the meeting state machine and transcript events. `src-tauri/src/meeting/` separates deterministic audio preparation, recovery repair, resource inspection, and the disk-backed worker protocol.
+- `src-tauri/src/meeting_detection.rs` debounces high-confidence native meeting signals and emits one detection event per session; `src/meeting/auto_start.ts` owns frontend preference and duplicate-start policy.
 - `src-tauri/src/audio_capture.rs` is the safe Rust boundary around native capture callbacks.
 - `src-tauri/native/macos_audio_capture.mm` captures microphone/system audio with Apple frameworks.
 
@@ -34,6 +35,19 @@ idle → preparing/downloading → permission → recording → finalizing → i
 ```
 
 Rust is authoritative for the meeting state. The frontend renders localized labels from stable phases and error codes; raw backend diagnostics must never be shown directly to users.
+
+Automatic start uses a separate state flow:
+
+```text
+frontmost app/window + microphone-in-use signal
+  -> native classification
+  -> three-sample Rust debounce
+  -> meeting://detection
+  -> frontend preference / busy-session guard
+  -> existing meeting_start command and first-use disclosure
+```
+
+Fifteen consecutive misses rearm detection for a later session. Until that clear transition, repeated signals are consumed, including signals observed during a manually started recording.
 
 Audio is mixed to mono 16 kHz, written to recovery WAV/PCM files, and streamed to the worker. Final transcript segments are applied to the editor as ordinary Markdown-compatible content. Temporary files are removed after successful completion or cancellation and retained on unexpected failure.
 

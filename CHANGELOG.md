@@ -4,6 +4,16 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-12
+
+### Added
+
+- Debounced automatic meeting detection for major desktop and browser meeting apps, with first-use disclosure and duplicate-start protection.
+
+### Changed
+
+- Bumped the desktop app version so existing v0.1.0 installations receive the meeting-detection release through the signed updater.
+
 ### Added
 
 - Local-first WYSIWYG Markdown editing with GFM support.
