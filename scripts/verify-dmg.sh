@@ -10,6 +10,7 @@ dmg_path="$1"
 expected_version="${2:-}"
 source_background="src-tauri/dmg/ulpaso-dmg-background.png"
 mount_point="$(mktemp -d /tmp/ulpaso-dmg.XXXXXX)"
+compare_dir="$(mktemp -d /tmp/ulpaso-dmg-compare.XXXXXX)"
 mounted=0
 
 cleanup() {
@@ -17,11 +18,20 @@ cleanup() {
     hdiutil detach "$mount_point" -quiet || hdiutil detach "$mount_point" -force -quiet || true
   fi
   rmdir "$mount_point" 2>/dev/null || true
+  rm -f "$compare_dir/source.bmp" "$compare_dir/bundled.bmp"
+  rmdir "$compare_dir" 2>/dev/null || true
 }
 trap cleanup EXIT
 
-test -f "$dmg_path"
-test -f "$source_background"
+require() {
+  if ! "$@"; then
+    echo "DMG verification failed: $*" >&2
+    exit 1
+  fi
+}
+
+require test -f "$dmg_path"
+require test -f "$source_background"
 
 # Reading stdin from /dev/null is deliberate: a DMG containing an SLA/EULA
 # cannot mount unattended and therefore fails this verification.
@@ -29,23 +39,28 @@ hdiutil attach -readonly -nobrowse -mountpoint "$mount_point" "$dmg_path" </dev/
 mounted=1
 
 app_path="$mount_point/Ulpaso.app"
-test -d "$app_path"
-test -L "$mount_point/Applications"
-test -f "$mount_point/.DS_Store"
+require test -d "$app_path"
+require test -L "$mount_point/Applications"
+require test -f "$mount_point/.DS_Store"
 
 background_path="$(find "$mount_point/.background" -maxdepth 1 -type f -name '*.png' -print -quit)"
-test -n "$background_path"
-cmp "$source_background" "$background_path"
+require test -n "$background_path"
+
+# create-dmg may rewrite PNG metadata on a different macOS runner. Compare
+# normalized, uncompressed pixels so the artwork must still be identical.
+sips -s format bmp "$source_background" --out "$compare_dir/source.bmp" >/dev/null
+sips -s format bmp "$background_path" --out "$compare_dir/bundled.bmp" >/dev/null
+require cmp "$compare_dir/source.bmp" "$compare_dir/bundled.bmp"
 
 dimensions="$(sips -g pixelWidth -g pixelHeight "$background_path" 2>/dev/null)"
-grep -q 'pixelWidth: 660' <<<"$dimensions"
-grep -q 'pixelHeight: 400' <<<"$dimensions"
+require grep -q 'pixelWidth: 660' <<<"$dimensions"
+require grep -q 'pixelHeight: 400' <<<"$dimensions"
 
 bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Contents/Info.plist")"
-test "$bundle_id" = "app.ulpaso.editor"
+require test "$bundle_id" = "app.ulpaso.editor"
 if [[ -n "$expected_version" ]]; then
   app_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_path/Contents/Info.plist")"
-  test "$app_version" = "$expected_version"
+  require test "$app_version" = "$expected_version"
 fi
 
 echo "Verified unattended DMG mount, styled 660x400 background, Applications link, and Ulpaso.app"
