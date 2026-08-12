@@ -28,7 +28,7 @@ Temporary meeting recordings are removed after successful completion or cancella
 
 The first meeting downloads about 1.2 GB of pinned speech and speaker models. The app discloses the expected download and installed size before starting; later transcription runs from local files.
 
-Meeting detection prompts are enabled by default and can be disabled in Settings. Closing the macOS window keeps Ulpaso in the background so it can surface a confirmation prompt, while quitting with Command-Q stops detection. Three consecutive high-confidence checks are required: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never starts recording without confirmation, never bypasses the first-use model disclosure, does not ask twice for the same session, and does not inspect audio samples before transcription begins.
+Meeting detection notifications are enabled by default and can be disabled in Settings. Closing the macOS window keeps Ulpaso in the background so it can show a native notification in the upper-right corner, while quitting with Command-Q stops detection. Three consecutive high-confidence checks are required: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never starts recording until **Start recording** is chosen in the notification, never bypasses the first-use model disclosure, does not ask twice for the same session, and does not inspect audio samples before transcription begins. The editor window stays hidden unless first-use setup is required or the notification body is opened.
 
 ## Requirements
 

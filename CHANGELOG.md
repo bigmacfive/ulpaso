@@ -4,6 +4,14 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-13
+
+### Changed
+
+- Replaced the in-app meeting confirmation dialog with a native macOS notification that appears while the editor window is hidden.
+- Added **Start recording** and **Not now** notification actions without restoring or focusing the app window.
+- Keep first-use model disclosure intact: the window opens only after **Start recording** when local resources still need approval.
+
 ## [0.2.1] - 2026-08-12
 
 ### Changed

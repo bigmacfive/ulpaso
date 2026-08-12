@@ -90,6 +90,7 @@ async function mountApp() {
     expect(invokeCalls("meeting_status")).toHaveLength(1);
     expect(invokeCalls("meeting_detection_status")).toHaveLength(1);
     expect(mocks.listeners.has("meeting://detection")).toBe(true);
+    expect(mocks.listeners.has("meeting://notification-action")).toBe(true);
   });
   return root;
 }
@@ -98,8 +99,8 @@ function emitDetection(snapshot: MeetingDetectionSnapshot) {
   mocks.listeners.get("meeting://detection")?.({ payload: snapshot });
 }
 
-function detectionDialog(root: HTMLElement) {
-  return root.querySelector<HTMLElement>(".meeting-detection-dialog");
+function emitNotificationAction(action: "start" | "dismiss" | "open") {
+  mocks.listeners.get("meeting://notification-action")?.({ payload: { action } });
 }
 
 beforeEach(() => {
@@ -133,56 +134,60 @@ afterEach(() => {
 });
 
 describe("App meeting detection integration", () => {
-  it("shows and focuses the hidden app but never starts before confirmation", async () => {
-    const root = await mountApp();
+  it("shows a native notification without opening the hidden app or starting", async () => {
+    await mountApp();
     emitDetection(zoom);
 
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
-    expect(detectionDialog(root)?.textContent).toContain("Record this Zoom meeting?");
-    expect(mocks.show).toHaveBeenCalledOnce();
-    expect(mocks.setFocus).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
+    expect(invokeCalls("meeting_notification_show")[0][1]).toMatchObject({
+      title: "Record this Zoom meeting?",
+      startTitle: "Start recording",
+      dismissTitle: "Not now",
+    });
+    expect(mocks.show).not.toHaveBeenCalled();
+    expect(mocks.setFocus).not.toHaveBeenCalled();
     expect(invokeCalls("meeting_start")).toHaveLength(0);
 
     emitDetection(zoom);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mocks.show).toHaveBeenCalledOnce();
+    expect(invokeCalls("meeting_notification_show")).toHaveLength(1);
     expect(invokeCalls("meeting_start")).toHaveLength(0);
   });
 
-  it("starts only after the user chooses Start recording", async () => {
-    const root = await mountApp();
+  it("starts only after the native notification Start recording action", async () => {
+    await mountApp();
     emitDetection(zoom);
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
 
-    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-primary")!.click();
+    emitNotificationAction("start");
     await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
-    expect(detectionDialog(root)).toBeNull();
+    expect(mocks.show).not.toHaveBeenCalled();
+    expect(mocks.setFocus).not.toHaveBeenCalled();
   });
 
   it("does not ask again after Not now until that meeting clears", async () => {
-    const root = await mountApp();
+    await mountApp();
     emitDetection(zoom);
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
 
-    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-secondary")!.click();
-    expect(detectionDialog(root)).toBeNull();
+    emitNotificationAction("dismiss");
     emitDetection(zoom);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(detectionDialog(root)).toBeNull();
+    expect(invokeCalls("meeting_notification_show")).toHaveLength(1);
 
     emitDetection(cleared);
     emitDetection(zoom);
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(2));
     expect(invokeCalls("meeting_start")).toHaveLength(0);
   });
 
   it("does not prompt for a detection that belongs to a manual recording", async () => {
     meetingState = { ...idleMeeting, phase: "recording", sessionId: "manual" };
-    const root = await mountApp();
+    await mountApp();
     emitDetection(zoom);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(detectionDialog(root)).toBeNull();
+    expect(invokeCalls("meeting_notification_show")).toHaveLength(0);
     expect(invokeCalls("meeting_start")).toHaveLength(0);
     expect(mocks.show).not.toHaveBeenCalled();
   });
@@ -191,12 +196,14 @@ describe("App meeting detection integration", () => {
     resources = { ...readyResources, ready: false, transcriptionModelReady: false };
     const root = await mountApp();
     emitDetection(zoom);
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
 
-    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-primary")!.click();
+    emitNotificationAction("start");
     await vi.waitFor(() => {
       expect(root.querySelector("#meeting-setup-title")?.textContent).toContain("Prepare local meeting transcription");
     });
+    expect(mocks.show).toHaveBeenCalledOnce();
+    expect(mocks.setFocus).toHaveBeenCalledOnce();
     expect(invokeCalls("meeting_start")).toHaveLength(0);
 
     root.querySelector<HTMLButtonElement>(".meeting-setup-dialog .button-primary")!.click();
@@ -209,14 +216,25 @@ describe("App meeting detection integration", () => {
     detectorStatus = zoom;
     const root = await mountApp();
     expect(invokeCalls("meeting_start")).toHaveLength(0);
-    expect(detectionDialog(root)).toBeNull();
+    expect(invokeCalls("meeting_notification_show")).toHaveLength(0);
 
     root.querySelector<HTMLButtonElement>('button[aria-label="Settings"]')!.click();
-    const detectionSetting = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection prompts"]')!;
+    const detectionSetting = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection notifications"]')!;
     detectionSetting.querySelectorAll<HTMLButtonElement>("button")[0].click();
 
-    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
     expect(invokeCalls("meeting_start")).toHaveLength(0);
     expect(localStorage.getItem(MEETING_DETECTION_STORAGE_KEY)).toBe("true");
+  });
+
+  it("opens the app without recording when the notification body is clicked", async () => {
+    await mountApp();
+    emitDetection(zoom);
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
+
+    emitNotificationAction("open");
+    await vi.waitFor(() => expect(mocks.show).toHaveBeenCalledOnce());
+    expect(mocks.setFocus).toHaveBeenCalledOnce();
+    expect(invokeCalls("meeting_start")).toHaveLength(0);
   });
 });

@@ -51,11 +51,12 @@ real hardware:
 | worker killed once | capture continues and spool is replayed |
 | app killed during capture | WAV header is repaired on next launch |
 | 30+ minute meeting | bounded memory and final transcript reaches the end |
-| Close the macOS window, then detect a supported meeting | hidden window reappears with one confirmation prompt |
-| Supported desktop meeting app + active microphone | one confirmation prompt after three checks; no recording before acceptance |
-| Browser without a meeting title or microphone use | no confirmation prompt |
-| Dismissed or duplicate detection | no second prompt in the same session |
-| Detection during a manual recording | no prompt and no automatic restart |
+| Close the macOS window, then detect a supported meeting | one native notification appears; the window remains hidden |
+| Supported desktop meeting app + active microphone | one notification after three checks; no recording before **Start recording** |
+| **Start recording** with resources ready | recording starts without restoring or focusing the window |
+| Browser without a meeting title or microphone use | no notification |
+| Dismissed or duplicate detection | no second notification in the same session |
+| Detection during a manual recording | no notification and no automatic restart |
 | First confirmed detected meeting | model/download disclosure is still shown |
 | cancellation | temporary WAV and PCM are removed |
 

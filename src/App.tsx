@@ -7,7 +7,6 @@ import DocumentSaveState from "./components/DocumentSaveState";
 import CommandPalette from "./components/CommandPalette";
 import DocumentConfirmationDialog, { type PendingDocumentAction } from "./components/DocumentConfirmationDialog";
 import MeetingSetupDialog from "./components/MeetingSetupDialog";
-import MeetingDetectionDialog from "./components/MeetingDetectionDialog";
 import SettingsPopover from "./components/SettingsPopover";
 import { locale, t } from "./i18n";
 import { Icon } from "./icons";
@@ -59,6 +58,9 @@ type MeetingTranscript = MeetingEditorTranscript;
 type ToastTone = "success" | "error" | "info";
 type ToastState = { message: string; tone: ToastTone };
 type PendingMeetingStart = { microphoneOnly: boolean; systemOnly: boolean };
+type MeetingNotificationAction = {
+  action: "start" | "dismiss" | "open" | "failed" | "permission-denied";
+};
 
 const IDLE_MEETING: MeetingState = {
   phase: "idle", sessionId: null, progress: null, message: null,
@@ -113,6 +115,7 @@ export default function App() {
   let unlistenMeetingState: UnlistenFn | undefined;
   let unlistenMeetingTranscript: UnlistenFn | undefined;
   let unlistenMeetingDetection: UnlistenFn | undefined;
+  let unlistenMeetingNotificationAction: UnlistenFn | undefined;
   let unlistenCloseRequested: UnlistenFn | undefined;
   let meetingErrorPopoverRef: HTMLDivElement | undefined;
   let meetingStateInitialized = false;
@@ -143,7 +146,6 @@ export default function App() {
       localStorage.getItem(LEGACY_MEETING_AUTO_START_STORAGE_KEY),
     ),
   );
-  const [meetingDetectionPrompt, setMeetingDetectionPrompt] = createSignal<MeetingDetectionSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
   const isNative = "__TAURI_INTERNALS__" in window;
@@ -206,6 +208,11 @@ export default function App() {
       }).then((unlisten) => {
         unlistenMeetingDetection = unlisten;
       });
+      void listen<MeetingNotificationAction>("meeting://notification-action", (event) => {
+        void handleMeetingNotificationAction(event.payload);
+      }).then((unlisten) => {
+        unlistenMeetingNotificationAction = unlisten;
+      });
       void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
         .then((snapshot) => void handleMeetingDetection(snapshot))
         .catch(() => undefined);
@@ -221,6 +228,7 @@ export default function App() {
     unlistenMeetingState?.();
     unlistenMeetingTranscript?.();
     unlistenMeetingDetection?.();
+    unlistenMeetingNotificationAction?.();
     unlistenCloseRequested?.();
   });
 
@@ -243,7 +251,7 @@ export default function App() {
       setMeetingErrorOpen(true);
     } else if (next.phase !== "idle") {
       setMeetingErrorOpen(false);
-      setMeetingDetectionPrompt(null);
+      if (isNative) void invoke("meeting_notification_clear");
     }
     if (next.phase === "recording" && !meetingResources()?.ready) void refreshMeetingResources();
     flushPendingMeetingDetection();
@@ -265,17 +273,45 @@ export default function App() {
       enabled: meetingDetectionEnabled(),
       busy: isMeetingBusy(),
     });
-    if (!snapshot.detected) setMeetingDetectionPrompt(null);
+    if (!snapshot.detected && isNative) void invoke("meeting_notification_clear");
     if (action !== "prompt") return;
 
-    setMeetingDetectionPrompt(snapshot);
     try {
-      const currentWindow = getCurrentWindow();
-      await currentWindow.show();
-      await currentWindow.setFocus();
+      const appName = snapshot.appName || t("meeting.detectedApp");
+      await invoke("meeting_notification_show", {
+        title: t("meeting.detectionPromptTitle", { app: appName }),
+        body: t("meeting.detectionPromptBody"),
+        startTitle: t("meeting.detectionPromptStart"),
+        dismissTitle: t("meeting.detectionPromptDismiss"),
+      });
     } catch (error) {
-      setMeetingDetectionPrompt(null);
       showToast(readableError(error, t("meeting.detectionPromptFailed")), "error", 4200);
+    }
+  }
+
+  async function revealMainWindow() {
+    const currentWindow = getCurrentWindow();
+    await currentWindow.show();
+    await currentWindow.setFocus();
+  }
+
+  async function handleMeetingNotificationAction(payload: MeetingNotificationAction) {
+    if (payload.action === "dismiss") return;
+    try {
+      if (payload.action === "open") {
+        await revealMainWindow();
+        return;
+      }
+      if (payload.action !== "start" || isMeetingBusy()) return;
+
+      await invoke("meeting_notification_clear");
+      const status = meetingResources() ?? await refreshMeetingResources();
+      if (!status?.ready && (!status?.diskSpaceSufficient || !hasMeetingResourceConsent())) {
+        await revealMainWindow();
+      }
+      await toggleMeeting();
+    } catch (error) {
+      showToast(readableError(error, t("meeting.startFailed")), "error", 4200);
     }
   }
 
@@ -283,18 +319,12 @@ export default function App() {
     const next = !meetingDetectionEnabled();
     setMeetingDetectionEnabled(next);
     localStorage.setItem(MEETING_DETECTION_STORAGE_KEY, String(next));
-    if (!next) setMeetingDetectionPrompt(null);
+    if (!next && isNative) void invoke("meeting_notification_clear");
     if (next && isNative) {
       void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
         .then((snapshot) => void handleMeetingDetection(snapshot))
         .catch(() => undefined);
     }
-  }
-
-  function confirmMeetingDetection() {
-    if (!meetingDetectionPrompt()) return;
-    setMeetingDetectionPrompt(null);
-    void toggleMeeting();
   }
 
   function handleMeetingTranscript(payload: MeetingTranscript) {
@@ -801,14 +831,6 @@ export default function App() {
           onConfirm={confirmMeetingSetup}
         />
       </Show>
-
-      <Show when={meetingDetectionPrompt()}>{(snapshot) =>
-        <MeetingDetectionDialog
-          appName={snapshot().appName || t("meeting.detectedApp")}
-          onDismiss={() => setMeetingDetectionPrompt(null)}
-          onConfirm={confirmMeetingDetection}
-        />
-      }</Show>
 
       <Show when={toast()}>{(item) => <div class="toast" classList={{ error: item().tone === "error", info: item().tone === "info" }} role={item().tone === "error" ? "alert" : "status"} aria-live="polite">
         <Icon name={item().tone === "error" ? "alert" : item().tone === "info" ? "info" : "check"} size={15} />

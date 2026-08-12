@@ -81,7 +81,7 @@ describe("SettingsPopover shortcut guide", () => {
       />
     ), root);
 
-    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection prompts"]')!;
+    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection notifications"]')!;
     const [on, off] = Array.from(group.querySelectorAll<HTMLButtonElement>("button"));
     expect(on.getAttribute("aria-pressed")).toBe("true");
     expect(off.getAttribute("aria-pressed")).toBe("false");
