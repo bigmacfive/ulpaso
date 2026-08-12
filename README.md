@@ -4,7 +4,7 @@
   <p>A quiet, local-first Markdown editor with on-device meeting notes.</p>
 </div>
 
-![Ulpaso editor](docs/assets/ulpaso-app.jpg)
+![Ulpaso — local meeting transcription to Markdown](docs/assets/ulpaso-intro.gif)
 
 > **Project status:** early preview. Ulpaso currently targets Apple Silicon Macs running macOS 15 or later. Tagged releases are signed, notarized, and delivered through GitHub Releases with in-app update checks.
 
