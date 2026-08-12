@@ -19,10 +19,12 @@ describe("SettingsPopover shortcut guide", () => {
         theme="light"
         meetingDescription="Local models ready"
         meetingDetectionEnabled={true}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
         onToggleMeetingDetection={vi.fn()}
-        onOpenAudioSettings={vi.fn()}
+        onManageMicrophonePermission={vi.fn()}
       />
     ), root);
 
@@ -50,10 +52,12 @@ describe("SettingsPopover shortcut guide", () => {
         theme="dark"
         meetingDescription="로컬 모델 준비됨"
         meetingDetectionEnabled={false}
+        microphonePermission="denied"
+        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
         onToggleMeetingDetection={vi.fn()}
-        onOpenAudioSettings={vi.fn()}
+        onManageMicrophonePermission={vi.fn()}
       />
     ), root);
 
@@ -74,10 +78,12 @@ describe("SettingsPopover shortcut guide", () => {
         theme="light"
         meetingDescription="Local models ready"
         meetingDetectionEnabled={true}
+        microphonePermission="not-determined"
+        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
         onToggleMeetingDetection={onToggleMeetingDetection}
-        onOpenAudioSettings={vi.fn()}
+        onManageMicrophonePermission={vi.fn()}
       />
     ), root);
 
@@ -87,6 +93,33 @@ describe("SettingsPopover shortcut guide", () => {
     expect(off.getAttribute("aria-pressed")).toBe("false");
     off.click();
     expect(onToggleMeetingDetection).toHaveBeenCalledOnce();
+    dispose();
+  });
+
+  it("offers the native microphone request before linking to System Settings", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const onManageMicrophonePermission = vi.fn();
+    const dispose = render(() => (
+      <SettingsPopover
+        theme="light"
+        meetingDescription="Local models ready"
+        meetingDetectionEnabled={true}
+        microphonePermission="not-determined"
+        microphonePermissionBusy={false}
+        onClose={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onToggleMeetingDetection={vi.fn()}
+        onManageMicrophonePermission={onManageMicrophonePermission}
+      />
+    ), root);
+
+    const microphoneRow = root.querySelector<HTMLElement>(".settings-row-microphone")!;
+    expect(microphoneRow.textContent).toContain("Permission has not been requested");
+    const button = microphoneRow.querySelector<HTMLButtonElement>("button")!;
+    expect(button.textContent).toContain("Allow microphone");
+    button.click();
+    expect(onManageMicrophonePermission).toHaveBeenCalledOnce();
     dispose();
   });
 });

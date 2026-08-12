@@ -24,6 +24,20 @@ namespace {
 UlpasoAudioCallback gAudioCallback = nullptr;
 UlpasoCaptureStateCallback gStateCallback = nullptr;
 
+int MicrophoneAuthorizationCode(AVAuthorizationStatus status) {
+  switch (status) {
+    case AVAuthorizationStatusAuthorized:
+      return 1;
+    case AVAuthorizationStatusDenied:
+      return 2;
+    case AVAuthorizationStatusRestricted:
+      return 3;
+    case AVAuthorizationStatusNotDetermined:
+    default:
+      return 0;
+  }
+}
+
 bool DiagnosticsEnabled() {
   const char *value = std::getenv("ULPASO_ASR_DIAGNOSTICS");
   return value && std::strcmp(value, "1") == 0;
@@ -91,6 +105,28 @@ bool HasDefaultInputChannels() {
   return channels > 0;
 }
 }  // namespace
+
+extern "C" int ulpaso_microphone_authorization_status() {
+  return MicrophoneAuthorizationCode(
+      [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]);
+}
+
+extern "C" void ulpaso_microphone_request_permission(void (*callback)(int)) {
+  AVAuthorizationStatus status =
+      [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+  if (status != AVAuthorizationStatusNotDetermined) {
+    if (callback) callback(MicrophoneAuthorizationCode(status));
+    return;
+  }
+
+  [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio
+                           completionHandler:^(BOOL granted) {
+    (void)granted;
+    AVAuthorizationStatus resolved =
+        [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+    if (callback) callback(MicrophoneAuthorizationCode(resolved));
+  }];
+}
 
 @interface UlpasoCapture : NSObject <SCStreamDelegate, SCStreamOutput>
 @property(nonatomic, strong) SCStream *stream;

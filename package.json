@@ -1,6 +1,6 @@
 {
   "name": "ulpaso",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "A local-first Markdown editor with on-device meeting transcription for macOS",
   "license": "MIT",
@@ -41,7 +41,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build --config src-tauri/tauri.release.conf.json",
-    "tauri:build:unsigned": "tauri build --config src-tauri/tauri.release.conf.json --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}' --no-sign"
+    "tauri:build:unsigned": "tauri build --config src-tauri/tauri.release.conf.json --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}' --no-sign",
+    "verify:dmg": "./scripts/verify-dmg.sh"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",

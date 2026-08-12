@@ -77,6 +77,7 @@ let dispose: (() => void) | undefined;
 let meetingState = idleMeeting;
 let resources = readyResources;
 let detectorStatus: MeetingDetectionSnapshot = cleared;
+let microphonePermission: "not-determined" | "authorized" | "denied" = "authorized";
 
 function invokeCalls(command: string) {
   return mocks.invoke.mock.calls.filter(([name]) => name === command);
@@ -108,6 +109,7 @@ beforeEach(() => {
   meetingState = idleMeeting;
   resources = readyResources;
   detectorStatus = cleared;
+  microphonePermission = "authorized";
   mocks.listeners.clear();
   mocks.invoke.mockReset();
   mocks.show.mockClear();
@@ -118,6 +120,11 @@ beforeEach(() => {
     if (command === "meeting_status") return meetingState;
     if (command === "meeting_resources") return resources;
     if (command === "meeting_detection_status") return detectorStatus;
+    if (command === "meeting_microphone_permission_status") return microphonePermission;
+    if (command === "meeting_request_microphone_permission") {
+      microphonePermission = "authorized";
+      return microphonePermission;
+    }
     return idleMeeting;
   });
   Object.defineProperty(window, "__TAURI_INTERNALS__", {
@@ -163,6 +170,20 @@ describe("App meeting detection integration", () => {
     await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
     expect(mocks.show).not.toHaveBeenCalled();
     expect(mocks.setFocus).not.toHaveBeenCalled();
+  });
+
+  it("reveals the app and requests native microphone consent on first recording", async () => {
+    microphonePermission = "not-determined";
+    await mountApp();
+    emitDetection(zoom);
+    await vi.waitFor(() => expect(invokeCalls("meeting_notification_show")).toHaveLength(1));
+
+    emitNotificationAction("start");
+
+    await vi.waitFor(() => expect(invokeCalls("meeting_request_microphone_permission")).toHaveLength(1));
+    expect(mocks.show).toHaveBeenCalledOnce();
+    expect(mocks.setFocus).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
   });
 
   it("does not ask again after Not now until that meeting clears", async () => {

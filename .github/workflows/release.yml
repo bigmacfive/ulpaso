@@ -60,6 +60,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: pnpm tauri:build
 
+      - name: Verify install disk image
+        run: |
+          DMG_PATH="$(find src-tauri/target/release/bundle/dmg -maxdepth 1 -name 'Ulpaso_*.dmg' -print -quit)"
+          VERSION="$(jq -r '.version' src-tauri/tauri.conf.json)"
+          pnpm verify:dmg "$DMG_PATH" "$VERSION"
+
       - name: Notarize and staple disk image
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -76,6 +82,8 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
+          VERSION="$(jq -r '.version' src-tauri/tauri.conf.json)"
+          pnpm verify:dmg "$DMG_PATH" "$VERSION"
 
       - name: Create checksums
         run: |

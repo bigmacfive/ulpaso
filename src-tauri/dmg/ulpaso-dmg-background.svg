@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="400" viewBox="0 0 660 400">
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <text x="30" y="72" fill="#111111" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="62" font-weight="700" letter-spacing="-5">Ulpaso</text>
+  <text x="630" y="38" fill="#111111" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="10" text-anchor="end" letter-spacing="1.6">01 / INSTALL</text>
+  <line x1="30" y1="92" x2="630" y2="92" stroke="#bdbdbd" stroke-width="1"/>
+
+  <text x="330" y="126" fill="#111111" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="15" font-weight="500" text-anchor="middle" letter-spacing="-0.2">Drag Ulpaso to Applications</text>
+  <text x="330" y="147" fill="#686868" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="10" text-anchor="middle" letter-spacing="0.2">One quiet step, then start writing.</text>
+
+  <line x1="258" y1="230" x2="402" y2="230" stroke="#111111" stroke-width="1.25"/>
+  <path d="M394 222 L402 230 L394 238" fill="none" stroke="#111111" stroke-width="1.25"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="258" cy="230" r="2.5" fill="#111111"/>
+
+  <line x1="30" y1="345" x2="630" y2="345" stroke="#dedede" stroke-width="1"/>
+  <text x="30" y="373" fill="#686868" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="10" letter-spacing="0.2">macOS 15+ · Apple silicon</text>
+  <text x="630" y="373" fill="#111111" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="10" font-weight="500" text-anchor="end" letter-spacing="0.3">ulpaso.app</text>
+</svg>

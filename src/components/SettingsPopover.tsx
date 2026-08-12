@@ -1,22 +1,32 @@
 import { For, Show, createSignal } from "solid-js";
 import { Icon } from "../icons";
-import { locale, localeLabels, setLocale, t, type Locale } from "../i18n";
+import { locale, localeLabels, setLocale, t, type Locale, type MessageKey } from "../i18n";
 import { SHORTCUT_GROUPS, SHORTCUTS } from "../shortcuts";
 
 interface SettingsPopoverProps {
   theme: "light" | "dark";
   meetingDescription: string;
   meetingDetectionEnabled: boolean;
+  microphonePermission: "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
+  microphonePermissionBusy: boolean;
   onClose(): void;
   onToggleTheme(): void;
   onToggleMeetingDetection(): void;
-  onOpenAudioSettings(): void;
+  onManageMicrophonePermission(): void;
 }
 
 const shortcutGroupColumns = [
   SHORTCUT_GROUPS.filter((group) => group.id === "document" || group.id === "view"),
   SHORTCUT_GROUPS.filter((group) => group.id === "editing" || group.id === "meeting"),
 ] as const;
+
+const microphoneStatusKeys: Record<SettingsPopoverProps["microphonePermission"], MessageKey> = {
+  "not-determined": "settings.microphoneStatus.not-determined",
+  authorized: "settings.microphoneStatus.authorized",
+  denied: "settings.microphoneStatus.denied",
+  restricted: "settings.microphoneStatus.restricted",
+  unavailable: "settings.microphoneStatus.unavailable",
+};
 
 function ShortcutGuideTrigger() {
   const [shortcutGuideOpen, setShortcutGuideOpen] = createSignal(false);
@@ -71,6 +81,12 @@ function ShortcutGuideTrigger() {
 }
 
 export default function SettingsPopover(props: SettingsPopoverProps) {
+  const microphoneActionLabel = () => {
+    if (props.microphonePermissionBusy) return t("settings.microphoneRequesting");
+    if (props.microphonePermission === "authorized") return t("settings.microphoneAllowed");
+    if (props.microphonePermission === "not-determined") return t("settings.microphoneAllow");
+    return t("settings.microphoneOpenSettings");
+  };
 
   return (
     <div class="settings-popover-layer" onMouseDown={props.onClose}>
@@ -120,8 +136,16 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
               >{t("settings.off")}</button>
             </div>
             <span class="settings-meeting-detection-description">{t("settings.meetingDetectionDescription")}</span>
-            <button type="button" class="settings-link" onClick={props.onOpenAudioSettings}>{t("settings.audioPermissions")}<Icon name="externalLink" size={12} /></button>
           </div>
+        </div>
+        <div class="settings-row settings-row-microphone">
+          <div><strong>{t("settings.microphone")}</strong><span>{t(microphoneStatusKeys[props.microphonePermission])}</span></div>
+          <button
+            type="button"
+            class="settings-link"
+            disabled={props.microphonePermissionBusy || props.microphonePermission === "unavailable"}
+            onClick={props.onManageMicrophonePermission}
+          >{microphoneActionLabel()}<Icon name="externalLink" size={12} /></button>
         </div>
         <div class="settings-row settings-row-shortcuts">
           <div><strong>{t("settings.shortcuts")}</strong><span>{t("settings.shortcutsDescription")}</span></div>

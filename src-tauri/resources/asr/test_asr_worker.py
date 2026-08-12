@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from asr_worker import (
     ASR_REPO,
+    DIARIZATION_THRESHOLD,
     DownloadReporter,
     MODEL_REVISIONS,
     build_rolling_speaker_segments,
@@ -284,6 +285,9 @@ class MeetingTranscriptionTests(unittest.TestCase):
         ]
         turns = merge_turns(raw, 11.0)
         self.assertEqual(turns, [{"speaker": 1, "start": 0.0, "end": 11.0}])
+
+    def test_validated_diarization_threshold_stays_sensitive_to_quiet_speakers(self):
+        self.assertEqual(DIARIZATION_THRESHOLD, 0.40)
 
     def test_overlapping_speech_is_assigned_once_to_higher_probability_speaker(self):
         raw = [

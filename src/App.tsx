@@ -61,6 +61,7 @@ type PendingMeetingStart = { microphoneOnly: boolean; systemOnly: boolean };
 type MeetingNotificationAction = {
   action: "start" | "dismiss" | "open" | "failed" | "permission-denied";
 };
+type MicrophonePermission = "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
 
 const IDLE_MEETING: MeetingState = {
   phase: "idle", sessionId: null, progress: null, message: null,
@@ -147,6 +148,8 @@ export default function App() {
     ),
   );
   const [settingsOpen, setSettingsOpen] = createSignal(false);
+  const [microphonePermission, setMicrophonePermission] = createSignal<MicrophonePermission>("unavailable");
+  const [microphonePermissionBusy, setMicrophonePermissionBusy] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
   const isNative = "__TAURI_INTERNALS__" in window;
   const meetingEditorBridge = new MeetingEditorBridge(meetingTitle);
@@ -175,6 +178,13 @@ export default function App() {
     onCleanup(() => document.removeEventListener("pointerdown", handleOutsidePointerDown));
   });
 
+  createEffect(() => {
+    if (!settingsOpen() || !isNative) return;
+    void refreshMicrophonePermission();
+    const timer = window.setInterval(() => void refreshMicrophonePermission(), 1000);
+    onCleanup(() => window.clearInterval(timer));
+  });
+
   onMount(() => {
     document.documentElement.dataset.theme = theme();
     window.addEventListener("keydown", handleShortcut);
@@ -197,6 +207,7 @@ export default function App() {
         flushPendingMeetingDetection();
       });
       void refreshMeetingResources();
+      void refreshMicrophonePermission();
       void listen<MeetingState>("meeting://state", (event) => handleMeetingState(event.payload)).then((unlisten) => {
         unlistenMeetingState = unlisten;
       });
@@ -352,6 +363,56 @@ export default function App() {
     }
   }
 
+  async function refreshMicrophonePermission(): Promise<MicrophonePermission> {
+    if (!isNative) return "unavailable";
+    try {
+      const status = await invoke<MicrophonePermission>("meeting_microphone_permission_status");
+      setMicrophonePermission(status);
+      return status;
+    } catch {
+      setMicrophonePermission("unavailable");
+      return "unavailable";
+    }
+  }
+
+  async function requestMicrophonePermission(): Promise<MicrophonePermission> {
+    setMicrophonePermissionBusy(true);
+    try {
+      const status = await invoke<MicrophonePermission>("meeting_request_microphone_permission");
+      setMicrophonePermission(status);
+      return status;
+    } finally {
+      setMicrophonePermissionBusy(false);
+    }
+  }
+
+  async function openMicrophoneSettings() {
+    try { await invoke("meeting_open_microphone_settings"); }
+    catch (error) { showToast(readableError(error, t("meeting.settingsFailed")), "error", 4200); }
+  }
+
+  async function manageMicrophonePermission() {
+    if (microphonePermission() === "not-determined") {
+      try { await requestMicrophonePermission(); }
+      catch (error) { showToast(readableError(error, t("meeting.settingsFailed")), "error", 4200); }
+      return;
+    }
+    await openMicrophoneSettings();
+  }
+
+  async function ensureMicrophonePermission(systemOnly: boolean): Promise<boolean> {
+    if (systemOnly) return true;
+    let status = await refreshMicrophonePermission();
+    if (status === "not-determined") {
+      await revealMainWindow();
+      status = await requestMicrophonePermission();
+    }
+    if (status === "authorized") return true;
+    showToast(t("settings.microphoneDenied"), "error", 4200);
+    if (status === "denied" || status === "restricted") await openMicrophoneSettings();
+    return false;
+  }
+
   async function toggleMeeting(microphoneOnly = false, systemOnly = false, disclosed = false) {
     if (!isNative) { showToast(t("meeting.desktopOnly"), "info"); return; }
     try {
@@ -368,6 +429,7 @@ export default function App() {
         return;
       }
       if (meeting().phase === "error") await invoke("meeting_cancel");
+      if (!await ensureMicrophonePermission(systemOnly)) return;
       if (!disclosed) {
         const status = meetingResources() ?? await refreshMeetingResources();
         if (!status?.ready && (!status?.diskSpaceSufficient || !hasMeetingResourceConsent())) {
@@ -726,10 +788,12 @@ export default function App() {
           theme={theme()}
           meetingDescription={meetingResourceDescription()}
           meetingDetectionEnabled={meetingDetectionEnabled()}
+          microphonePermission={microphonePermission()}
+          microphonePermissionBusy={microphonePermissionBusy()}
           onClose={() => setSettingsOpen(false)}
           onToggleTheme={toggleTheme}
           onToggleMeetingDetection={toggleMeetingDetection}
-          onOpenAudioSettings={() => void openMeetingSettings()}
+          onManageMicrophonePermission={() => void manageMicrophonePermission()}
         />
       </Show>
 

@@ -1351,6 +1351,23 @@ pub fn meeting_open_settings(error_code: Option<String>) -> Result<(), String> {
     Err("This feature is available only on macOS".into())
 }
 
+#[tauri::command]
+pub fn meeting_microphone_permission_status() -> String {
+    audio_capture::microphone_permission_status().into()
+}
+
+#[tauri::command]
+pub async fn meeting_request_microphone_permission() -> Result<String, String> {
+    audio_capture::request_microphone_permission()
+        .await
+        .map(str::to_owned)
+}
+
+#[tauri::command]
+pub fn meeting_open_microphone_settings() -> Result<(), String> {
+    meeting_open_settings(Some("microphone_permission".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

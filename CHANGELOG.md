@@ -4,6 +4,19 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-13
+
+### Added
+
+- Added an explicit native macOS microphone-permission control in Settings, including live status refresh and a direct link to the Microphone privacy pane after denial.
+- Added an editorial 660×400 install background and an automated DMG check that rejects license prompts, missing artwork, incorrect versions, or broken Applications links.
+
+### Changed
+
+- Request microphone access through the native macOS dialog immediately before the first recording that needs microphone audio.
+- Tuned speaker activity detection against labeled two-, three-, and four-speaker VoxConverse recordings so quieter speakers remain visible in meeting notes.
+- Removed the DMG license agreement so opening the downloaded image goes directly to drag-and-drop installation.
+
 ## [0.2.2] - 2026-08-13
 
 ### Changed

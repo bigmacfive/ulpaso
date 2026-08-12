@@ -1,6 +1,7 @@
 use std::{
     ffi::{c_char, c_double, c_float, c_int, CStr},
     sync::{mpsc::Sender, Mutex, OnceLock},
+    time::Duration,
 };
 
 #[derive(Debug)]
@@ -24,9 +25,14 @@ pub enum AudioSource {
 }
 
 static EVENT_SENDER: OnceLock<Mutex<Option<Sender<CaptureEvent>>>> = OnceLock::new();
+static MICROPHONE_PERMISSION_SENDER: OnceLock<Mutex<Option<Sender<c_int>>>> = OnceLock::new();
 
 fn sender_slot() -> &'static Mutex<Option<Sender<CaptureEvent>>> {
     EVENT_SENDER.get_or_init(|| Mutex::new(None))
+}
+
+fn microphone_permission_sender_slot() -> &'static Mutex<Option<Sender<c_int>>> {
+    MICROPHONE_PERMISSION_SENDER.get_or_init(|| Mutex::new(None))
 }
 
 #[cfg(target_os = "macos")]
@@ -38,6 +44,72 @@ extern "C" {
         microphone_only: c_int,
     );
     fn ulpaso_audio_capture_stop();
+    fn ulpaso_microphone_authorization_status() -> c_int;
+    fn ulpaso_microphone_request_permission(callback: extern "C" fn(c_int));
+}
+
+#[cfg(target_os = "macos")]
+extern "C" fn receive_microphone_permission(status: c_int) {
+    if let Ok(mut slot) = microphone_permission_sender_slot().lock() {
+        if let Some(sender) = slot.take() {
+            let _ = sender.send(status);
+        }
+    }
+}
+
+fn microphone_permission_name(status: c_int) -> &'static str {
+    match status {
+        1 => "authorized",
+        2 => "denied",
+        3 => "restricted",
+        _ => "not-determined",
+    }
+}
+
+pub fn microphone_permission_status() -> &'static str {
+    #[cfg(target_os = "macos")]
+    unsafe {
+        microphone_permission_name(ulpaso_microphone_authorization_status())
+    }
+    #[cfg(not(target_os = "macos"))]
+    "unavailable"
+}
+
+pub async fn request_microphone_permission() -> Result<&'static str, String> {
+    #[cfg(target_os = "macos")]
+    {
+        if microphone_permission_status() != "not-determined" {
+            return Ok(microphone_permission_status());
+        }
+        let (sender, receiver) = std::sync::mpsc::channel();
+        {
+            let mut slot = microphone_permission_sender_slot()
+                .lock()
+                .map_err(|_| "Could not initialize microphone permission state")?;
+            if slot.is_some() {
+                return Err("A microphone permission request is already in progress".into());
+            }
+            *slot = Some(sender);
+        }
+        unsafe { ulpaso_microphone_request_permission(receive_microphone_permission) };
+        let received = tauri::async_runtime::spawn_blocking(move || {
+            receiver.recv_timeout(Duration::from_secs(120))
+        })
+        .await
+        .map_err(|error| format!("Microphone permission request failed: {error}"))?;
+        let status = match received {
+            Ok(status) => status,
+            Err(_) => {
+                if let Ok(mut slot) = microphone_permission_sender_slot().lock() {
+                    *slot = None;
+                }
+                return Err("Microphone permission request timed out".into());
+            }
+        };
+        Ok(microphone_permission_name(status))
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("This feature is available only on macOS".into())
 }
 
 #[cfg(target_os = "macos")]
