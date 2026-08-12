@@ -34,22 +34,16 @@ function responseRecorder() {
   };
 }
 
-test("redirects downloads to the Apple Silicon DMG from the latest release", async () => {
+test("redirects downloads using the latest update manifest", async () => {
+  let requestUrl;
   let requestOptions;
-  globalThis.fetch = async (_url, options) => {
+  globalThis.fetch = async (url, options) => {
+    requestUrl = url;
     requestOptions = options;
     return {
       ok: true,
       async json() {
-        return {
-          assets: [
-            { name: "Ulpaso_0.2.2_x64.dmg", browser_download_url: "https://example.com/x64" },
-            {
-              name: "Ulpaso_0.2.2_aarch64.dmg",
-              browser_download_url: "https://github.com/bigmacfive/ulpaso/releases/download/v0.2.2/Ulpaso_0.2.2_aarch64.dmg",
-            },
-          ],
-        };
+        return { version: "0.2.2" };
       },
     };
   };
@@ -64,31 +58,45 @@ test("redirects downloads to the Apple Silicon DMG from the latest release", asy
   );
   assert.equal(response.headers.get("cache-control"), "public, max-age=0, must-revalidate");
   assert.equal(response.headers.get("vercel-cdn-cache-control"), "public, s-maxage=60");
+  assert.equal(requestUrl, "https://github.com/bigmacfive/ulpaso/releases/latest/download/latest.json");
   assert.equal(requestOptions.cache, "no-store");
-  assert.equal(requestOptions.headers["x-github-api-version"], "2022-11-28");
+  assert.equal(requestOptions.headers.accept, "application/json");
 });
 
 test("supports HEAD checks without pinning a release in the landing page", async () => {
   globalThis.fetch = async () => ({
     ok: true,
     async json() {
-      return {
-        assets: [{
-          name: "Ulpaso_1.0.0_aarch64.dmg",
-          browser_download_url: "https://example.com/Ulpaso_1.0.0_aarch64.dmg",
-        }],
-      };
+      return { version: "1.0.0" };
     },
   });
   const response = responseRecorder();
 
   await handler({ method: "HEAD" }, response);
 
-  assert.equal(response.redirectUrl, "https://example.com/Ulpaso_1.0.0_aarch64.dmg");
+  assert.equal(
+    response.redirectUrl,
+    "https://github.com/bigmacfive/ulpaso/releases/download/v1.0.0/Ulpaso_1.0.0_aarch64.dmg",
+  );
 });
 
 test("falls back to the latest release page when GitHub lookup fails", async () => {
   globalThis.fetch = async () => { throw new Error("offline"); };
+  const response = responseRecorder();
+
+  await handler({ method: "GET" }, response);
+
+  assert.equal(response.redirectCode, 302);
+  assert.equal(response.redirectUrl, "https://github.com/bigmacfive/ulpaso/releases/latest");
+});
+
+test("falls back when the manifest version is invalid", async () => {
+  globalThis.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { version: "../../unexpected" };
+    },
+  });
   const response = responseRecorder();
 
   await handler({ method: "GET" }, response);

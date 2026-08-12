@@ -1,5 +1,6 @@
-const LATEST_RELEASE_API = "https://api.github.com/repos/bigmacfive/ulpaso/releases/latest";
+const LATEST_MANIFEST = "https://github.com/bigmacfive/ulpaso/releases/latest/download/latest.json";
 const RELEASES_FALLBACK = "https://github.com/bigmacfive/ulpaso/releases/latest";
+const RELEASE_DOWNLOAD_ROOT = "https://github.com/bigmacfive/ulpaso/releases/download";
 
 export default async function handler(request, response) {
   if (!["GET", "HEAD"].includes(request.method)) {
@@ -14,21 +15,23 @@ export default async function handler(request, response) {
   response.setHeader("Vercel-CDN-Cache-Control", "public, s-maxage=60");
 
   try {
-    const releaseResponse = await fetch(LATEST_RELEASE_API, {
+    const manifestResponse = await fetch(LATEST_MANIFEST, {
       cache: "no-store",
       headers: {
-        accept: "application/vnd.github+json",
-        "x-github-api-version": "2022-11-28",
+        accept: "application/json",
         "user-agent": "ulpaso-download-redirect",
       },
     });
-    if (!releaseResponse.ok) throw new Error(`GitHub release lookup failed: ${releaseResponse.status}`);
+    if (!manifestResponse.ok) throw new Error(`Latest manifest lookup failed: ${manifestResponse.status}`);
 
-    const release = await releaseResponse.json();
-    const asset = release.assets?.find(({ name }) => /^Ulpaso_.*_aarch64\.dmg$/.test(name));
-    if (!asset?.browser_download_url) throw new Error("Apple Silicon DMG not found");
+    const manifest = await manifestResponse.json();
+    if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(manifest.version ?? "")) {
+      throw new Error("Latest manifest has an invalid version");
+    }
 
-    return response.redirect(302, asset.browser_download_url);
+    const tag = `v${manifest.version}`;
+    const dmg = `Ulpaso_${manifest.version}_aarch64.dmg`;
+    return response.redirect(302, `${RELEASE_DOWNLOAD_ROOT}/${tag}/${dmg}`);
   } catch {
     return response.redirect(302, RELEASES_FALLBACK);
   }
