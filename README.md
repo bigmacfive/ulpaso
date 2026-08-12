@@ -1,47 +1,89 @@
 <div align="center">
-  <img src="src-tauri/icons/icon.png" width="104" alt="Ulpaso logo" />
   <h1>Ulpaso</h1>
-  <p>A quiet, local-first Markdown editor with on-device meeting notes.</p>
+  <p><strong>Meetings stay on your Mac.<br />Notes stay in Markdown.</strong></p>
+  <p>A quiet, local-first Markdown editor with on-device meeting transcription for macOS.</p>
+  <p>
+    <a href="https://github.com/bigmacfive/ulpaso/actions/workflows/ci.yml"><img src="https://github.com/bigmacfive/ulpaso/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status" /></a>
+    <a href="https://github.com/bigmacfive/ulpaso/releases/latest"><img src="https://img.shields.io/github/v/release/bigmacfive/ulpaso?display_name=tag&amp;sort=semver&amp;style=flat-square&amp;color=111111" alt="Latest release" /></a>
+    <a href="https://ulpaso.app/download"><img src="https://img.shields.io/badge/macOS-15%2B-111111?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="macOS 15 or later" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/bigmacfive/ulpaso?style=flat-square&amp;color=111111" alt="MIT license" /></a>
+  </p>
+  <p>
+    <a href="https://ulpaso.app/download"><strong>Download for Mac</strong></a>
+    ·
+    <a href="https://ulpaso.app/">Website</a>
+    ·
+    <a href="#build-from-source">Build from source</a>
+  </p>
 </div>
 
-![Ulpaso — local meeting transcription to Markdown](docs/assets/ulpaso-intro.gif)
+<p align="center">
+  <a href="https://ulpaso.app/">
+    <img src="docs/assets/ulpaso-intro.gif" width="960" alt="Ulpaso turns a local meeting transcript into a Markdown note" />
+  </a>
+</p>
 
-> **Project status:** early preview. Ulpaso currently targets Apple Silicon Macs running macOS 15 or later. Tagged releases are signed, notarized, and delivered through GitHub Releases with in-app update checks.
+<p align="center"><sub>Apple Silicon · macOS 15+ · no account or subscription required</sub></p>
 
-## What it does
+> [!NOTE]
+> Ulpaso is an early preview for Apple Silicon Macs running macOS 15 or later. Current release builds are signed, notarized, and delivered through GitHub Releases with in-app update checks.
 
-- Edits ordinary `.md` files in a focused WYSIWYG interface.
-- Supports GFM tables, task lists, links, images, blockquotes, lists, and syntax-highlighted code blocks.
-- Keeps drafts recoverable and asks before discarding unsaved work.
-- Transcribes microphone and system audio locally, then organizes the result for up to four speakers.
-- Detects active Zoom, Teams, Webex, FaceTime, Skype, and supported browser meetings and asks before starting notes.
-- Provides light and dark themes plus English, Korean, and Japanese interfaces.
-- Keeps document contents and meeting audio off application servers.
+## 01 — Your thoughts, on your Mac.
 
-Ulpaso is deliberately small: there is no account, cloud workspace, proprietary document format, or telemetry pipeline.
+| **Your files** | **Your meetings** | **Your flow** |
+| :--- | :--- | :--- |
+| Ordinary `.md` files that open anywhere. | Microphone and system audio transcribed on-device. | One quiet place to capture, organize, and keep writing. |
 
-## Privacy
+### From conversation to notes
 
-Documents remain files you choose on your Mac. Meeting audio is processed on-device. The app downloads pinned model artifacts from Hugging Face the first time meeting notes are used; it does not upload document or recording contents to an Ulpaso service.
+1. **Open a document.** Write in a focused WYSIWYG editor without giving up portable Markdown.
+2. **Capture a meeting.** Ulpaso can notice supported calls, ask before recording, and organize local transcription for up to four speakers.
+3. **Keep writing.** The transcript lands in the same document as clean, editable notes.
 
-Temporary meeting recordings are removed after successful completion or cancellation. If transcription stops unexpectedly, recovery audio is retained in the app data directory so the session is not silently lost. See [Privacy and data flow](docs/PRIVACY.md) for exact paths and behavior.
+<p align="center">
+  <img src="docs/assets/ulpaso-app.jpg" width="960" alt="Ulpaso's quiet Markdown writing interface" />
+</p>
 
-The first meeting downloads about 1.2 GB of pinned speech and speaker models. The app discloses the expected download and installed size before starting; later transcription runs from local files.
+The editor supports GFM tables, task lists, links, images, blockquotes, lists, and syntax-highlighted code blocks. Draft recovery protects unfinished work, while light and dark themes plus English, Korean, and Japanese interfaces keep the app comfortable for everyday use.
 
-Meeting detection notifications are enabled by default and can be disabled in Settings. Closing the macOS window keeps Ulpaso in the background so it can show a native notification in the upper-right corner, while quitting with Command-Q stops detection. Three consecutive high-confidence checks are required: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never starts recording until **Start recording** is chosen in the notification, never bypasses the first-use model disclosure, does not ask twice for the same session, and does not inspect audio samples before transcription begins. The editor window stays hidden unless first-use setup is required or the notification body is opened.
+## 02 — Local by design.
 
-## Requirements
+Document contents, meeting audio, and transcripts are processed locally and are not sent to Ulpaso servers. Documents remain files you choose on your Mac. There is no account, cloud workspace, proprietary document format, or telemetry pipeline.
 
-- Apple Silicon Mac
-- macOS 15 or later
-- Xcode command-line tools
-- Node.js 20.19+ (Node 22 recommended)
-- pnpm 10+
-- Rust 1.90
+- Meeting setup downloads approximately 1.3 GB of pinned speech and speaker models from Hugging Face. Later transcription runs from those local files.
+- Temporary recordings are removed after successful completion or cancellation. Recovery audio is retained only when an unexpected stop could otherwise lose the session.
+- Meeting detection can suggest starting notes, but recording begins only after you explicitly choose **Start recording**.
+- GitHub is contacted for release and update metadata; Hugging Face is contacted for the disclosed model download.
 
-The editor UI can run in a browser on other platforms, but file dialogs, native saving, system-audio capture, and meeting transcription require the macOS desktop app.
+Read [Privacy and data flow](docs/PRIVACY.md) for exact storage paths, network behavior, model sources, and deletion rules.
 
-## Develop
+<details>
+<summary><strong>How automatic meeting detection works</strong></summary>
+
+Meeting notifications are enabled by default and can be disabled in Settings. Ulpaso looks for a supported frontmost meeting app—or a matching browser meeting title—while the default microphone is in use. Three consecutive high-confidence checks are required before a native macOS notification appears.
+
+Supported apps include Zoom, Teams, Webex, FaceTime, Skype, and supported browser meetings. Detection does not inspect audio samples, bypass first-use model disclosure, or start recording by itself. Closing the window keeps detection available in the background; quitting with <kbd>⌘ Q</kbd> stops it.
+
+</details>
+
+## 03 — Install.
+
+[**Download the latest signed build →**](https://ulpaso.app/download)
+
+Ulpaso currently requires:
+
+- an Apple Silicon Mac;
+- macOS 15 or later.
+
+Download the DMG, move Ulpaso to Applications, and open it normally. Current releases include checksums and a signed, notarized, stapled macOS build.
+
+The editor UI can run in a browser on other platforms, but native saving, system-audio capture, meeting detection, and transcription require the macOS desktop app.
+
+<a id="build-from-source"></a>
+
+## 04 — Build from source.
+
+You will need Xcode command-line tools, Node.js 20.19+ (Node 22 recommended), pnpm 10+, and Rust 1.90.
 
 ```sh
 corepack enable
@@ -55,7 +97,7 @@ For frontend-only work:
 pnpm dev
 ```
 
-The development app installs its pinned Python transcription runtime on first use. A production bundle assembles the same runtime ahead of time:
+The development app installs its pinned Python transcription runtime on first use. To assemble the production runtime ahead of an unsigned local build:
 
 ```sh
 pnpm prepare:asr-runtime
@@ -64,20 +106,21 @@ pnpm tauri:build:unsigned
 
 Runtime and model downloads are intentionally excluded from Git.
 
-## Verify
+### Verify a checkout
 
 ```sh
 pnpm check
 pnpm build
 ```
 
-`pnpm check` builds the reusable Markdown package, runs TypeScript and frontend tests, Rust formatting, Clippy and unit tests, lightweight Python tests including a real mock-worker process exchange, and benchmark-manifest validation. The model-worker suite can be run after preparing the runtime:
+`pnpm check` builds the reusable Markdown package, runs TypeScript and frontend tests, checks Rust formatting, runs Clippy and unit tests, exercises the lightweight Python suite, and validates benchmark manifests. After preparing the model runtime, you can also run:
 
 ```sh
 pnpm test:python:worker
 ```
 
-## Keyboard shortcuts
+<details>
+<summary><strong>Keyboard shortcuts</strong></summary>
 
 | Action | Shortcut |
 | --- | --- |
@@ -95,31 +138,50 @@ pnpm test:python:worker
 
 Hover or focus the `?` button in Settings for the complete in-app guide.
 
-## Project layout
+</details>
+
+<details>
+<summary><strong>Project layout</strong></summary>
 
 ```text
 src/                         SolidJS editor and interface
-packages/markdown/           Publishable Markdown ↔ ProseMirror JSON primitives
+packages/markdown/           Markdown ↔ ProseMirror JSON primitives
 src-tauri/src/               Rust application and meeting controller
 src-tauri/native/            ScreenCaptureKit/CoreAudio bridge
 src-tauri/resources/asr/     Local transcription worker and frozen requirements
-scripts/                     Reproducible runtime, icon, and benchmark tooling
+scripts/                     Runtime, icon, release, and benchmark tooling
 benchmarks/                  Model-quality fixtures and aggregate results
 docs/                        Architecture, privacy, and contributor documentation
 ```
 
-Read [Architecture](docs/ARCHITECTURE.md) and the [meeting worker protocol](docs/MEETING_PROTOCOL.md) before changing the editor/meeting boundary. Release candidates follow the [device verification checklist](docs/RELEASE.md); near-term contribution areas are tracked in [ROADMAP.md](ROADMAP.md).
+</details>
 
-## Contributing
+## 05 — Contribute.
 
-Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and report security concerns according to [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and report security concerns according to [SECURITY.md](SECURITY.md). Notable changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
-Notable changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+### Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Privacy and data flow](docs/PRIVACY.md)
+- [Meeting worker protocol](docs/MEETING_PROTOCOL.md)
+- [Release and device verification](docs/RELEASE.md)
+- [Roadmap](ROADMAP.md)
+
+<div align="center">
+  <h2>Start Ulpaso on your Mac.</h2>
+  <p><a href="https://ulpaso.app/download"><strong>Download the latest release →</strong></a></p>
+</div>
 
 ## License
 
-Ulpaso is available under the [MIT License](LICENSE). Bundled fonts, adapted editor portions, local inference packages, and downloaded models retain their own licenses; see [Third-party notices](THIRD_PARTY_NOTICES.md).
+Ulpaso source code is available under the [MIT License](LICENSE). Bundled fonts, adapted editor portions, local inference packages, and downloaded models retain their own licenses; see [Third-party notices](THIRD_PARTY_NOTICES.md).
 
-### 한국어
+<details>
+<summary><strong>한국어</strong></summary>
 
-Ulpaso는 일반 Markdown 파일을 직접 편집하고, 회의 음성을 기기 안에서 전사하는 macOS용 로컬 우선 에디터입니다. 현재 Apple Silicon과 macOS 15 이상을 대상으로 하며, 계정·클라우드 문서 형식·텔레메트리를 사용하지 않습니다.
+Ulpaso는 일반 Markdown 파일을 직접 편집하고 회의 음성을 기기 안에서 전사하는 macOS용 로컬 우선 에디터입니다. Apple Silicon과 macOS 15 이상을 지원하며, 계정·구독·클라우드 문서 형식·텔레메트리 없이 사용할 수 있습니다. 회의 전사 설정 시에는 약 1.3 GB의 고정된 음성·화자 모델을 내려받습니다.
+
+[Mac용 다운로드](https://ulpaso.app/download) · [웹사이트](https://ulpaso.app/) · [개인정보 처리 방식](docs/PRIVACY.md)
+
+</details>
