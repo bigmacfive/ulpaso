@@ -8,6 +8,7 @@ use tauri::Manager;
 
 mod audio_capture;
 mod meeting;
+mod updater;
 
 #[cfg(target_os = "macos")]
 unsafe extern "C" {
@@ -84,6 +85,7 @@ fn save_document(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
@@ -94,6 +96,7 @@ pub fn run() {
 
             let controller = meeting::MeetingController::new(app.handle().clone());
             app.manage(controller.clone());
+            updater::spawn_update_check(app.handle().clone());
             if std::env::var("ULPASO_ASR_AUTOSTART").ok().as_deref() == Some("1") {
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_secs(2));

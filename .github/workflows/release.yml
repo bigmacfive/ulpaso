@@ -1,4 +1,4 @@
-name: Unsigned macOS release
+name: Signed macOS release
 
 on:
   push:
@@ -34,15 +34,56 @@ jobs:
       - name: Verify source
         run: pnpm check
 
-      - name: Build unsigned application and DMG
-        run: pnpm tauri:build:unsigned
+      - name: Import Developer ID certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/ulpaso-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 -D > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -t 3600 -u "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Build, sign, notarize, and create updater bundle
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: pnpm tauri:build
 
       - name: Create checksums
         run: |
           cd src-tauri/target/release/bundle/dmg
           shasum -a 256 Ulpaso_*.dmg > SHA256SUMS.txt
 
-      - name: Publish tagged prerelease
+      - name: Create updater manifest
+        if: github.ref_type == 'tag'
+        run: |
+          UPDATE_ARCHIVE="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+          test -n "$UPDATE_ARCHIVE"
+          test -f "$UPDATE_ARCHIVE.sig"
+          UPDATE_NAME="$(basename "$UPDATE_ARCHIVE")"
+          UPDATE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$UPDATE_NAME"
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "Ulpaso $GITHUB_REF_NAME" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg signature "$(<"$UPDATE_ARCHIVE.sig")" \
+            --arg url "$UPDATE_URL" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {"darwin-aarch64": {signature: $signature, url: $url}}}' \
+            > latest.json
+
+      - name: Publish tagged release
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,18 +91,22 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             src-tauri/target/release/bundle/dmg/Ulpaso_*.dmg \
             src-tauri/target/release/bundle/dmg/SHA256SUMS.txt \
+            src-tauri/target/release/bundle/macos/*.app.tar.gz \
+            src-tauri/target/release/bundle/macos/*.app.tar.gz.sig \
+            latest.json \
             --verify-tag \
             --generate-notes \
-            --prerelease \
-            --title "Ulpaso ${GITHUB_REF_NAME} (unsigned preview)"
+            --title "Ulpaso ${GITHUB_REF_NAME}"
 
       - name: Preserve manually triggered build
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ulpaso-unsigned-${{ github.sha }}
+          name: ulpaso-signed-${{ github.sha }}
           path: |
             src-tauri/target/release/bundle/dmg/Ulpaso_*.dmg
             src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
+            src-tauri/target/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/release/bundle/macos/*.app.tar.gz.sig
           if-no-files-found: error
           retention-days: 14

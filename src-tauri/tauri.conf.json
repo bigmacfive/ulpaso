@@ -35,6 +35,14 @@
       }
     ]
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5QTcxRUY1RUY3QTZGNTcKUldSWGIzcnY5UjZubVlFVk1mREY3Vm45WWtQdlRIYzNlUFliQ1c5dTdiOU5xZFpPZXN1Q2hLZ2MK",
+      "endpoints": [
+        "https://github.com/bigmacfive/ulpaso/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["app", "dmg"],

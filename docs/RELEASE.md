@@ -1,23 +1,28 @@
 # Release and device verification
 
-Ulpaso's release workflow produces unsigned preview builds. Code signing and
-notarization are intentionally outside this workflow; every generated release
-DMG is accompanied by `SHA256SUMS.txt`.
+Ulpaso's release workflow produces signed and notarized Apple Silicon builds.
+Every release includes a DMG checksum plus a signed Tauri updater bundle and
+`latest.json` for the in-app updater.
 
 ## Automated build
 
 Pushing a SemVer tag such as `v0.1.0` runs the Apple Silicon release workflow,
-executes all quality gates, assembles the pinned Python runtime, builds the DMG,
-and creates a GitHub prerelease. A manual workflow run keeps the same files as a
-14-day Actions artifact instead of creating a release.
+executes all quality gates, assembles the pinned Python runtime, signs and
+notarizes the application, and creates a GitHub release. A manual workflow run
+keeps the same files as a 14-day Actions artifact instead of creating a release.
+
+The workflow requires `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, and
+`TAURI_SIGNING_PRIVATE_KEY` as GitHub Actions secrets. Keep the updater private
+key backed up outside GitHub; losing it prevents updates for existing installs.
 
 Before tagging:
 
 1. Update the versions in `package.json`, `packages/markdown/package.json`,
    `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
 2. Move user-visible entries from `Unreleased` in `CHANGELOG.md` to the release.
-3. Run `pnpm check`, `pnpm build`, and `pnpm tauri:build:unsigned` on an Apple
-   Silicon Mac.
+3. Run `pnpm check` and `pnpm build`. A full signed release build requires the
+   same signing and notarization environment variables used by CI.
 4. Install the generated DMG into `/Applications`, rather than testing only the
    build directory.
 

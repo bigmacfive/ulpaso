@@ -10,12 +10,13 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 - On-device microphone and system-audio transcription with speaker organization.
 - English, Korean, and Japanese interfaces.
 - Draft recovery, recent documents, focus mode, command palette, and light/dark themes.
-- Reproducible unsigned macOS packaging and a native-style application icon.
+- Reproducible macOS packaging and a native-style application icon.
 - First-use model size, network, local-processing, and free-disk disclosure.
 - A publishable `@ulpaso/markdown` workspace package with a documented extension API.
-- Automated unsigned prerelease builds, checksums, benchmark validation, and a
-  real mock-worker protocol test.
+- Automated signed and notarized releases, checksums, benchmark validation, and
+  a real mock-worker protocol test.
 - A centralized macOS shortcut set with an accessible in-app guide in Settings.
+- Signed GitHub Releases with verified in-app update checks and installation.
 
 ### Changed
 

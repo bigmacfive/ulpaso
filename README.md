@@ -6,7 +6,7 @@
 
 ![Ulpaso editor](docs/assets/ulpaso-app.jpg)
 
-> **Project status:** early preview. Ulpaso currently targets Apple Silicon Macs running macOS 15 or later. The repository can build tagged previews as unsigned DMGs; source builds remain the most transparent way to evaluate the project.
+> **Project status:** early preview. Ulpaso currently targets Apple Silicon Macs running macOS 15 or later. Tagged releases are signed, notarized, and delivered through GitHub Releases with in-app update checks.
 
 ## What it does
 
