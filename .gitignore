@@ -3,6 +3,10 @@ node_modules/
 /dist/
 /packages/*/dist/
 
+# Local motion-graphics workspace and rendered video masters.
+# The optimized README GIF in docs/assets remains tracked.
+/packages/brand-video/
+
 # Rust and generated Tauri state
 /src-tauri/target/
 /src-tauri/gen/
