@@ -413,7 +413,7 @@ kbd { min-width: 22px; padding: 3px 6px; border-radius: 4px; border: 1px solid v
 .settings-language button { min-width: 29px; padding-left: 5px; padding-right: 5px; }
 .settings-row-meeting { align-items: flex-start; }
 .settings-meeting-controls { flex: 0 0 128px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.settings-meeting-auto-description { color: var(--text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
+.settings-meeting-detection-description { color: var(--text-muted); font-size: 9px; line-height: 1.35; text-align: right; }
 .settings-row-static > b { flex: 0 0 auto; color: var(--text-soft); font-size: 11px; font-weight: 500; }
 .settings-row-shortcuts .settings-help-button { width: 29px; height: 29px; border: 1px solid var(--border); }
 .settings-link { height: 29px; flex: 0 0 auto; padding: 0 8px 0 9px; border: 1px solid var(--border); border-radius: 5px; display: flex; align-items: center; gap: 5px; background: transparent; color: var(--text-soft); cursor: pointer; font-size: 10px; transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
@@ -425,6 +425,8 @@ kbd { min-width: 22px; padding: 3px 6px; border-radius: 4px; border: 1px solid v
 .confirmation-copy h2 { margin: 1px 0 7px; font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
 .confirmation-copy p { margin: 0; color: var(--text-soft); font-size: 12px; line-height: 1.6; word-break: keep-all; }
 .meeting-setup-dialog { width: min(470px, calc(100vw - 40px)); }
+.meeting-detection-dialog { width: min(440px, calc(100vw - 40px)); }
+.meeting-detection-icon { background: color-mix(in srgb, #4d7fca 14%, var(--surface)); color: color-mix(in srgb, #4d7fca 78%, var(--text)); }
 .confirmation-copy .meeting-setup-note { margin-top: 9px; color: var(--text-muted); font-size: 10.5px; }
 .confirmation-copy .meeting-setup-space-warning { margin-top: 9px; color: #b84a4a; font-size: 10.5px; }
 .confirmation-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; margin-top: 20px; }

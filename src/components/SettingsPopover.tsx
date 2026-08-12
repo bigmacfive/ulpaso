@@ -6,10 +6,10 @@ import { SHORTCUT_GROUPS, SHORTCUTS } from "../shortcuts";
 interface SettingsPopoverProps {
   theme: "light" | "dark";
   meetingDescription: string;
-  meetingAutoStartEnabled: boolean;
+  meetingDetectionEnabled: boolean;
   onClose(): void;
   onToggleTheme(): void;
-  onToggleMeetingAutoStart(): void;
+  onToggleMeetingDetection(): void;
   onOpenAudioSettings(): void;
 }
 
@@ -105,21 +105,21 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
         <div class="settings-row settings-row-meeting">
           <div><strong>{t("settings.meeting")}</strong><span>{props.meetingDescription}</span></div>
           <div class="settings-meeting-controls">
-            <div class="settings-segmented" role="group" aria-label={t("settings.meetingAutoStart")}>
+            <div class="settings-segmented" role="group" aria-label={t("settings.meetingDetection")}>
               <button
                 type="button"
-                aria-pressed={props.meetingAutoStartEnabled}
-                classList={{ active: props.meetingAutoStartEnabled }}
-                onClick={() => !props.meetingAutoStartEnabled && props.onToggleMeetingAutoStart()}
+                aria-pressed={props.meetingDetectionEnabled}
+                classList={{ active: props.meetingDetectionEnabled }}
+                onClick={() => !props.meetingDetectionEnabled && props.onToggleMeetingDetection()}
               >{t("settings.on")}</button>
               <button
                 type="button"
-                aria-pressed={!props.meetingAutoStartEnabled}
-                classList={{ active: !props.meetingAutoStartEnabled }}
-                onClick={() => props.meetingAutoStartEnabled && props.onToggleMeetingAutoStart()}
+                aria-pressed={!props.meetingDetectionEnabled}
+                classList={{ active: !props.meetingDetectionEnabled }}
+                onClick={() => props.meetingDetectionEnabled && props.onToggleMeetingDetection()}
               >{t("settings.off")}</button>
             </div>
-            <span class="settings-meeting-auto-description">{t("settings.meetingAutoStartDescription")}</span>
+            <span class="settings-meeting-detection-description">{t("settings.meetingDetectionDescription")}</span>
             <button type="button" class="settings-link" onClick={props.onOpenAudioSettings}>{t("settings.audioPermissions")}<Icon name="externalLink" size={12} /></button>
           </div>
         </div>

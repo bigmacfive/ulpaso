@@ -18,11 +18,11 @@ After macOS permission is granted, Ulpaso can capture:
 
 Audio is mixed and processed locally. Temporary files live under the app data directory in `Meeting Recovery/`. They are deleted after a successful transcript or an explicit cancellation. If capture or inference exits unexpectedly, the files are retained so the recording can be recovered rather than discarded.
 
-### Automatic meeting detection
+### Meeting detection prompts
 
 Before transcription starts, Ulpaso checks only whether the default microphone device is currently in use and reads the frontmost application's bundle identifier, display name, and visible window title. It uses those local signals to recognize supported desktop meeting apps and browser meeting pages. It does not read or retain microphone samples during detection, and detection metadata is not written to disk or sent over the network.
 
-Three consecutive matches are required before automatic start. A detected session is handled once, so duplicate checks and a manual stop cannot immediately restart transcription. Automatic detection can be disabled in Settings. First-use model download and disk-space disclosure still applies to automatically detected meetings.
+Three consecutive matches are required before Ulpaso shows a recording confirmation. Recording never starts until the user chooses **Start recording**. A detected session is handled once, so dismissing the prompt, duplicate checks, and a manual recording do not show another prompt for the same meeting. Detection prompts can be disabled in Settings. Closing the macOS window hides it while the local detector remains active; quitting the app stops detection. First-use model download and disk-space disclosure still applies after confirmation.
 
 Ulpaso requests screen-recording permission only because macOS exposes system-audio capture through ScreenCaptureKit. The app does not save screen video frames.
 

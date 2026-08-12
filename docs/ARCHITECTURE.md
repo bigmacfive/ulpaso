@@ -16,7 +16,7 @@ Ulpaso is a macOS Tauri application with a SolidJS/ProseMirror frontend and a Ru
 
 - `src-tauri/src/lib.rs` exposes narrow document open/save commands and configures application/window lifecycle.
 - `src-tauri/src/meeting.rs` owns the meeting state machine and transcript events. `src-tauri/src/meeting/` separates deterministic audio preparation, recovery repair, resource inspection, and the disk-backed worker protocol.
-- `src-tauri/src/meeting_detection.rs` debounces high-confidence native meeting signals and emits one detection event per session; `src/meeting/auto_start.ts` owns frontend preference and duplicate-start policy.
+- `src-tauri/src/meeting_detection.rs` debounces high-confidence native meeting signals and emits one detection event per session; `src/meeting/detection_prompt.ts` owns frontend preference and duplicate-prompt policy.
 - `src-tauri/src/audio_capture.rs` is the safe Rust boundary around native capture callbacks.
 - `src-tauri/native/macos_audio_capture.mm` captures microphone/system audio with Apple frameworks.
 
@@ -36,7 +36,7 @@ idle → preparing/downloading → permission → recording → finalizing → i
 
 Rust is authoritative for the meeting state. The frontend renders localized labels from stable phases and error codes; raw backend diagnostics must never be shown directly to users.
 
-Automatic start uses a separate state flow:
+Meeting detection prompts use a separate state flow:
 
 ```text
 frontmost app/window + microphone-in-use signal
@@ -44,6 +44,8 @@ frontmost app/window + microphone-in-use signal
   -> three-sample Rust debounce
   -> meeting://detection
   -> frontend preference / busy-session guard
+  -> show and focus hidden window
+  -> explicit recording confirmation
   -> existing meeting_start command and first-use disclosure
 ```
 

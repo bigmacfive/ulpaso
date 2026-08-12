@@ -14,7 +14,7 @@
 - Supports GFM tables, task lists, links, images, blockquotes, lists, and syntax-highlighted code blocks.
 - Keeps drafts recoverable and asks before discarding unsaved work.
 - Transcribes microphone and system audio locally, then organizes the result for up to four speakers.
-- Detects active Zoom, Teams, Webex, FaceTime, Skype, and supported browser meetings and can start notes automatically.
+- Detects active Zoom, Teams, Webex, FaceTime, Skype, and supported browser meetings and asks before starting notes.
 - Provides light and dark themes plus English, Korean, and Japanese interfaces.
 - Keeps document contents and meeting audio off application servers.
 
@@ -28,7 +28,7 @@ Temporary meeting recordings are removed after successful completion or cancella
 
 The first meeting downloads about 1.2 GB of pinned speech and speaker models. The app discloses the expected download and installed size before starting; later transcription runs from local files.
 
-Automatic meeting detection is enabled by default and can be disabled in Settings. It requires three consecutive high-confidence checks: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never bypasses the first-use model disclosure, does not restart a session after the user stops it, and does not inspect audio samples before transcription begins.
+Meeting detection prompts are enabled by default and can be disabled in Settings. Closing the macOS window keeps Ulpaso in the background so it can surface a confirmation prompt, while quitting with Command-Q stops detection. Three consecutive high-confidence checks are required: a supported meeting app (or matching browser meeting title) must be frontmost while the default microphone is in use. Detection never starts recording without confirmation, never bypasses the first-use model disclosure, does not ask twice for the same session, and does not inspect audio samples before transcription begins.
 
 ## Requirements
 

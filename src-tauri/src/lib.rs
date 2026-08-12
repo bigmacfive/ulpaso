@@ -145,6 +145,8 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // The red window control keeps the local detector alive in the
+                // background. Command-Q still follows the ExitRequested path.
                 api.prevent_close();
                 let _ = window.hide();
             }

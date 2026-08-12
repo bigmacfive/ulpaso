@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "solid-js/web";
 import App from "./App";
-import { MEETING_AUTO_START_STORAGE_KEY, type MeetingDetectionSnapshot } from "./meeting/auto_start";
+import { MEETING_DETECTION_STORAGE_KEY, type MeetingDetectionSnapshot } from "./meeting/detection_prompt";
 import { MEETING_RESOURCE_CONSENT_KEY, type MeetingResourceStatus } from "./meeting/resources";
 
 const mocks = vi.hoisted(() => ({
@@ -98,6 +98,10 @@ function emitDetection(snapshot: MeetingDetectionSnapshot) {
   mocks.listeners.get("meeting://detection")?.({ payload: snapshot });
 }
 
+function detectionDialog(root: HTMLElement) {
+  return root.querySelector<HTMLElement>(".meeting-detection-dialog");
+}
+
 beforeEach(() => {
   localStorage.clear();
   meetingState = idleMeeting;
@@ -129,34 +133,67 @@ afterEach(() => {
 });
 
 describe("App meeting detection integration", () => {
-  it("shows the app and starts exactly once for duplicate detection events", async () => {
-    await mountApp();
+  it("shows and focuses the hidden app but never starts before confirmation", async () => {
+    const root = await mountApp();
     emitDetection(zoom);
 
-    await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    expect(detectionDialog(root)?.textContent).toContain("Record this Zoom meeting?");
     expect(mocks.show).toHaveBeenCalledOnce();
     expect(mocks.setFocus).toHaveBeenCalledOnce();
+    expect(invokeCalls("meeting_start")).toHaveLength(0);
 
     emitDetection(zoom);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(invokeCalls("meeting_start")).toHaveLength(1);
+    expect(mocks.show).toHaveBeenCalledOnce();
+    expect(invokeCalls("meeting_start")).toHaveLength(0);
   });
 
-  it("does not restart after detection arrives during a manual recording", async () => {
+  it("starts only after the user chooses Start recording", async () => {
+    const root = await mountApp();
+    emitDetection(zoom);
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+
+    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-primary")!.click();
+    await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
+    expect(detectionDialog(root)).toBeNull();
+  });
+
+  it("does not ask again after Not now until that meeting clears", async () => {
+    const root = await mountApp();
+    emitDetection(zoom);
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+
+    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-secondary")!.click();
+    expect(detectionDialog(root)).toBeNull();
+    emitDetection(zoom);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(detectionDialog(root)).toBeNull();
+
+    emitDetection(cleared);
+    emitDetection(zoom);
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    expect(invokeCalls("meeting_start")).toHaveLength(0);
+  });
+
+  it("does not prompt for a detection that belongs to a manual recording", async () => {
     meetingState = { ...idleMeeting, phase: "recording", sessionId: "manual" };
-    await mountApp();
+    const root = await mountApp();
     emitDetection(zoom);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(detectionDialog(root)).toBeNull();
     expect(invokeCalls("meeting_start")).toHaveLength(0);
     expect(mocks.show).not.toHaveBeenCalled();
   });
 
-  it("preserves first-use disclosure before an automatically detected meeting", async () => {
+  it("preserves first-use disclosure after the user accepts the prompt", async () => {
     resources = { ...readyResources, ready: false, transcriptionModelReady: false };
     const root = await mountApp();
     emitDetection(zoom);
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
 
+    detectionDialog(root)!.querySelector<HTMLButtonElement>(".button-primary")!.click();
     await vi.waitFor(() => {
       expect(root.querySelector("#meeting-setup-title")?.textContent).toContain("Prepare local meeting transcription");
     });
@@ -167,17 +204,19 @@ describe("App meeting detection integration", () => {
     expect(localStorage.getItem(MEETING_RESOURCE_CONSENT_KEY)).toBe("accepted");
   });
 
-  it("can be enabled while a current detection is active", async () => {
-    localStorage.setItem(MEETING_AUTO_START_STORAGE_KEY, "false");
+  it("can enable prompts while a current detection is active without auto-starting", async () => {
+    localStorage.setItem(MEETING_DETECTION_STORAGE_KEY, "false");
     detectorStatus = zoom;
     const root = await mountApp();
     expect(invokeCalls("meeting_start")).toHaveLength(0);
+    expect(detectionDialog(root)).toBeNull();
 
     root.querySelector<HTMLButtonElement>('button[aria-label="Settings"]')!.click();
-    const autoStart = root.querySelector<HTMLElement>('[role="group"][aria-label="Automatic meeting detection"]')!;
-    autoStart.querySelectorAll<HTMLButtonElement>("button")[0].click();
+    const detectionSetting = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection prompts"]')!;
+    detectionSetting.querySelectorAll<HTMLButtonElement>("button")[0].click();
 
-    await vi.waitFor(() => expect(invokeCalls("meeting_start")).toHaveLength(1));
-    expect(localStorage.getItem(MEETING_AUTO_START_STORAGE_KEY)).toBe("true");
+    await vi.waitFor(() => expect(detectionDialog(root)).not.toBeNull());
+    expect(invokeCalls("meeting_start")).toHaveLength(0);
+    expect(localStorage.getItem(MEETING_DETECTION_STORAGE_KEY)).toBe("true");
   });
 });

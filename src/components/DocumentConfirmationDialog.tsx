@@ -1,7 +1,7 @@
 import { Icon } from "../icons";
 import { t } from "../i18n";
 
-type PendingDocumentAction = { kind: "new" } | { kind: "open"; path?: string } | { kind: "close" };
+type PendingDocumentAction = { kind: "new" } | { kind: "open"; path?: string };
 
 interface DocumentConfirmationDialogProps {
   action: PendingDocumentAction;
@@ -15,9 +15,7 @@ interface DocumentConfirmationDialogProps {
 export default function DocumentConfirmationDialog(props: DocumentConfirmationDialogProps) {
   const description = () => props.action.kind === "new"
     ? t("confirm.body.new")
-    : props.action.kind === "open"
-      ? t("confirm.body.open")
-      : t("confirm.body.close");
+    : t("confirm.body.open");
   return (
     <div class="modal-backdrop confirmation-backdrop" onMouseDown={props.onCancel}>
       <section class="confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="discard-title" aria-describedby="discard-description" onMouseDown={(event) => event.stopPropagation()}>

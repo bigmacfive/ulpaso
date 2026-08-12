@@ -4,6 +4,14 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-12
+
+### Changed
+
+- Replaced automatic meeting recording with an explicit **Record this meeting?** confirmation.
+- Keep the macOS process and local detector active when the window is closed, then restore and focus the window when a meeting prompt is ready.
+- Preserve the previous detection preference while renaming the setting to describe confirmation prompts accurately.
+
 ## [0.2.0] - 2026-08-12
 
 ### Added

@@ -353,7 +353,7 @@ mod tests {
     }
 
     #[test]
-    fn short_signal_gaps_do_not_rearm_auto_start() {
+    fn short_signal_gaps_do_not_rearm_detection() {
         let mut debouncer = DetectionDebouncer::default();
         for _ in 0..REQUIRED_MATCHES {
             debouncer.observe(Some(zoom()));

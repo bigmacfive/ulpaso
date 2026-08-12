@@ -7,6 +7,7 @@ import DocumentSaveState from "./components/DocumentSaveState";
 import CommandPalette from "./components/CommandPalette";
 import DocumentConfirmationDialog, { type PendingDocumentAction } from "./components/DocumentConfirmationDialog";
 import MeetingSetupDialog from "./components/MeetingSetupDialog";
+import MeetingDetectionDialog from "./components/MeetingDetectionDialog";
 import SettingsPopover from "./components/SettingsPopover";
 import { locale, t } from "./i18n";
 import { Icon } from "./icons";
@@ -33,11 +34,12 @@ import {
   type MeetingResourceStatus,
 } from "./meeting/resources";
 import {
-  MEETING_AUTO_START_STORAGE_KEY,
-  MeetingAutoStartCoordinator,
-  readMeetingAutoStartPreference,
+  LEGACY_MEETING_AUTO_START_STORAGE_KEY,
+  MEETING_DETECTION_STORAGE_KEY,
+  MeetingDetectionPromptCoordinator,
+  readMeetingDetectionPreference,
   type MeetingDetectionSnapshot,
-} from "./meeting/auto_start";
+} from "./meeting/detection_prompt";
 import { appShortcutAction, shortcutHint, type AppShortcutAction } from "./shortcuts";
 
 type FileDocument = { path: string | null; content: string };
@@ -108,7 +110,6 @@ export default function App() {
   let saveTimer: number | undefined;
   let toastTimer: number | undefined;
   let meetingTimer: number | undefined;
-  let allowWindowClose = false;
   let unlistenMeetingState: UnlistenFn | undefined;
   let unlistenMeetingTranscript: UnlistenFn | undefined;
   let unlistenMeetingDetection: UnlistenFn | undefined;
@@ -136,14 +137,18 @@ export default function App() {
   const [meetingErrorOpen, setMeetingErrorOpen] = createSignal(false);
   const [meetingResources, setMeetingResources] = createSignal<MeetingResourceStatus | null>(null);
   const [pendingMeetingStart, setPendingMeetingStart] = createSignal<PendingMeetingStart | null>(null);
-  const [meetingAutoStartEnabled, setMeetingAutoStartEnabled] = createSignal(
-    readMeetingAutoStartPreference(localStorage.getItem(MEETING_AUTO_START_STORAGE_KEY)),
+  const [meetingDetectionEnabled, setMeetingDetectionEnabled] = createSignal(
+    readMeetingDetectionPreference(
+      localStorage.getItem(MEETING_DETECTION_STORAGE_KEY),
+      localStorage.getItem(LEGACY_MEETING_AUTO_START_STORAGE_KEY),
+    ),
   );
+  const [meetingDetectionPrompt, setMeetingDetectionPrompt] = createSignal<MeetingDetectionSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
   const isNative = "__TAURI_INTERNALS__" in window;
   const meetingEditorBridge = new MeetingEditorBridge(meetingTitle);
-  const meetingAutoStart = new MeetingAutoStartCoordinator();
+  const meetingDetectionCoordinator = new MeetingDetectionPromptCoordinator();
 
   const commands = createMemo(() => commandDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })));
   const filteredCommands = createMemo(() => {
@@ -175,11 +180,13 @@ export default function App() {
     meetingTimer = window.setInterval(() => setMeetingNow(Date.now()), 1000);
     if (recoveredDraft) showToast(t("document.restored"), "info", 3200);
     if (isNative) {
-      void getCurrentWindow().onCloseRequested((event) => {
-        if (allowWindowClose || !dirty() || !currentMarkdown.trim()) return;
-        event.preventDefault();
-        persistRecoveryDraft(currentMarkdown, filePath());
-        setPendingDocumentAction({ kind: "close" });
+      void getCurrentWindow().onCloseRequested(() => {
+        // macOS keeps the process alive and hides the window in the Rust
+        // lifecycle handler. Preserve the draft without showing a hidden
+        // discard dialog; Command-Q remains the explicit quit action.
+        if (dirty() && currentMarkdown.trim()) {
+          persistRecoveryDraft(currentMarkdown, filePath());
+        }
       }).then((unlisten) => {
         unlistenCloseRequested = unlisten;
       });
@@ -236,6 +243,7 @@ export default function App() {
       setMeetingErrorOpen(true);
     } else if (next.phase !== "idle") {
       setMeetingErrorOpen(false);
+      setMeetingDetectionPrompt(null);
     }
     if (next.phase === "recording" && !meetingResources()?.ready) void refreshMeetingResources();
     flushPendingMeetingDetection();
@@ -253,32 +261,40 @@ export default function App() {
       pendingMeetingDetection = snapshot;
       return;
     }
-    const action = meetingAutoStart.observe(snapshot, {
-      enabled: meetingAutoStartEnabled(),
+    const action = meetingDetectionCoordinator.observe(snapshot, {
+      enabled: meetingDetectionEnabled(),
       busy: isMeetingBusy(),
     });
-    if (action !== "start") return;
+    if (!snapshot.detected) setMeetingDetectionPrompt(null);
+    if (action !== "prompt") return;
 
+    setMeetingDetectionPrompt(snapshot);
     try {
       const currentWindow = getCurrentWindow();
       await currentWindow.show();
       await currentWindow.setFocus();
-      showToast(t("meeting.autoDetected", { app: snapshot.appName || t("meeting.detectedApp") }), "info", 3600);
-      await toggleMeeting();
     } catch (error) {
-      showToast(readableError(error, t("meeting.startFailed")), "error", 4200);
+      setMeetingDetectionPrompt(null);
+      showToast(readableError(error, t("meeting.detectionPromptFailed")), "error", 4200);
     }
   }
 
-  function toggleMeetingAutoStart() {
-    const next = !meetingAutoStartEnabled();
-    setMeetingAutoStartEnabled(next);
-    localStorage.setItem(MEETING_AUTO_START_STORAGE_KEY, String(next));
+  function toggleMeetingDetection() {
+    const next = !meetingDetectionEnabled();
+    setMeetingDetectionEnabled(next);
+    localStorage.setItem(MEETING_DETECTION_STORAGE_KEY, String(next));
+    if (!next) setMeetingDetectionPrompt(null);
     if (next && isNative) {
       void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
         .then((snapshot) => void handleMeetingDetection(snapshot))
         .catch(() => undefined);
     }
+  }
+
+  function confirmMeetingDetection() {
+    if (!meetingDetectionPrompt()) return;
+    setMeetingDetectionPrompt(null);
+    void toggleMeeting();
   }
 
   function handleMeetingTranscript(payload: MeetingTranscript) {
@@ -517,13 +533,7 @@ export default function App() {
     setPendingDocumentAction(null);
     if (!action) return;
     if (action.kind === "new") newDocument();
-    else if (action.kind === "open") void openDocument(action.path);
-    else {
-      clearRecoveryDraft();
-      setDirty(false);
-      allowWindowClose = true;
-      void getCurrentWindow().close();
-    }
+    else void openDocument(action.path);
   }
 
   async function saveThenContinue() {
@@ -685,10 +695,10 @@ export default function App() {
         <SettingsPopover
           theme={theme()}
           meetingDescription={meetingResourceDescription()}
-          meetingAutoStartEnabled={meetingAutoStartEnabled()}
+          meetingDetectionEnabled={meetingDetectionEnabled()}
           onClose={() => setSettingsOpen(false)}
           onToggleTheme={toggleTheme}
-          onToggleMeetingAutoStart={toggleMeetingAutoStart}
+          onToggleMeetingDetection={toggleMeetingDetection}
           onOpenAudioSettings={() => void openMeetingSettings()}
         />
       </Show>
@@ -791,6 +801,14 @@ export default function App() {
           onConfirm={confirmMeetingSetup}
         />
       </Show>
+
+      <Show when={meetingDetectionPrompt()}>{(snapshot) =>
+        <MeetingDetectionDialog
+          appName={snapshot().appName || t("meeting.detectedApp")}
+          onDismiss={() => setMeetingDetectionPrompt(null)}
+          onConfirm={confirmMeetingDetection}
+        />
+      }</Show>
 
       <Show when={toast()}>{(item) => <div class="toast" classList={{ error: item().tone === "error", info: item().tone === "info" }} role={item().tone === "error" ? "alert" : "status"} aria-live="polite">
         <Icon name={item().tone === "error" ? "alert" : item().tone === "info" ? "info" : "check"} size={15} />
