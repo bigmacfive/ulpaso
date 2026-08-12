@@ -42,6 +42,7 @@ app_path="$mount_point/Ulpaso.app"
 require test -d "$app_path"
 require test -L "$mount_point/Applications"
 require test -f "$mount_point/.DS_Store"
+require grep -q 'ulpaso-dmg-background.png' < <(strings "$mount_point/.DS_Store")
 
 background_path="$(find "$mount_point/.background" -maxdepth 1 -type f -name '*.png' -print -quit)"
 require test -n "$background_path"

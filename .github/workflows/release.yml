@@ -60,6 +60,16 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: pnpm tauri:build
 
+      - name: Finalize and sign install disk image
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          DMG_PATH="$(find src-tauri/target/release/bundle/dmg -maxdepth 1 -name 'Ulpaso_*.dmg' -print -quit)"
+          test -n "$DMG_PATH"
+          ./scripts/finalize-dmg-layout.sh "$DMG_PATH"
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"
+          codesign --verify --verbose=2 "$DMG_PATH"
+
       - name: Verify install disk image
         run: |
           DMG_PATH="$(find src-tauri/target/release/bundle/dmg -maxdepth 1 -name 'Ulpaso_*.dmg' -print -quit)"
