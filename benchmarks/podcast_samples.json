@@ -1,0 +1,62 @@
+[
+  {
+    "id": "h7p-xSmMtg4",
+    "title": "줌 송년회 한국어 대화",
+    "url": "https://www.youtube.com/watch?v=h7p-xSmMtg4",
+    "language": "Korean",
+    "subtitle": "h7p-xSmMtg4.ko.json3",
+    "referenceQuality": "manual",
+    "startSeconds": 0,
+    "endSeconds": 120
+  },
+  {
+    "id": "aPIczwhFf64",
+    "title": "더벤처스 김철우 대표 인터뷰",
+    "url": "https://www.youtube.com/watch?v=aPIczwhFf64",
+    "language": "Korean",
+    "subtitle": "aPIczwhFf64.ko-orig.json3",
+    "referenceQuality": "automatic-original",
+    "startSeconds": 0,
+    "endSeconds": 120
+  },
+  {
+    "id": "Ux-TMWnmntM",
+    "title": "Natural Korean Conversation · 태웅쌤",
+    "url": "https://www.youtube.com/watch?v=Ux-TMWnmntM",
+    "language": "Korean",
+    "subtitle": "Ux-TMWnmntM.ko.json3",
+    "referenceQuality": "manual",
+    "startSeconds": 0,
+    "endSeconds": 120
+  },
+  {
+    "id": "cSwaRkus1q4",
+    "title": "한국어 지인 인터뷰",
+    "url": "https://www.youtube.com/watch?v=cSwaRkus1q4",
+    "language": "Korean",
+    "subtitle": "cSwaRkus1q4.ko.json3",
+    "referenceQuality": "manual",
+    "startSeconds": 0,
+    "endSeconds": 120
+  },
+  {
+    "id": "8P7dEGkvHH8",
+    "title": "DAEBAK SHOW · MARK",
+    "url": "https://www.youtube.com/watch?v=8P7dEGkvHH8",
+    "language": "English",
+    "subtitle": "8P7dEGkvHH8.en-orig.json3",
+    "referenceQuality": "automatic-original",
+    "startSeconds": 0,
+    "endSeconds": 120
+  },
+  {
+    "id": "vif8NQcjVf0",
+    "title": "Lex Fridman · Jensen Huang",
+    "url": "https://www.youtube.com/watch?v=vif8NQcjVf0",
+    "language": "English",
+    "subtitle": "vif8NQcjVf0.en.json3",
+    "referenceQuality": "manual",
+    "startSeconds": 0,
+    "endSeconds": 120
+  }
+]

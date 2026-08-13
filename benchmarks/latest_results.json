@@ -1,0 +1,68 @@
+{
+  "measuredAt": "2026-08-05",
+  "model": "mlx-community/Qwen3-ASR-0.6B-8bit",
+  "audioSeconds": 719.986,
+  "sampleCount": 6,
+  "manualReferenceCount": 4,
+  "streamChunkSeconds": 2,
+  "rollingRefineSeconds": 20,
+  "manualLiveMeanCer": 0.2714,
+  "manualLiveMeanWer": 0.394,
+  "manualRollingMeanCer": 0.1138,
+  "manualRollingMeanWer": 0.2213,
+  "maxFirstTextAudioSeconds": 6,
+  "maxFirstStableAudioSeconds": 6,
+  "maxRollingFeedP95Seconds": 1.8839,
+  "maxRollingFeedSeconds": 2.3085,
+  "maxRollingRealTimeFactor": 0.1967,
+  "samples": [
+    {
+      "id": "h7p-xSmMtg4",
+      "referenceQuality": "manual",
+      "liveCer": 0.3387,
+      "liveWer": 0.4663,
+      "rollingCer": 0.1703,
+      "rollingWer": 0.2953
+    },
+    {
+      "id": "aPIczwhFf64",
+      "referenceQuality": "automatic-original",
+      "liveCer": 0.2393,
+      "liveWer": 0.3973,
+      "rollingCer": 0.1033,
+      "rollingWer": 0.2021
+    },
+    {
+      "id": "Ux-TMWnmntM",
+      "referenceQuality": "manual",
+      "liveCer": 0.3247,
+      "liveWer": 0.487,
+      "rollingCer": 0.0972,
+      "rollingWer": 0.2021
+    },
+    {
+      "id": "cSwaRkus1q4",
+      "referenceQuality": "manual",
+      "liveCer": 0.2705,
+      "liveWer": 0.4427,
+      "rollingCer": 0.1683,
+      "rollingWer": 0.3594
+    },
+    {
+      "id": "8P7dEGkvHH8",
+      "referenceQuality": "automatic-original",
+      "liveCer": 0.2154,
+      "liveWer": 0.2982,
+      "rollingCer": 0.0902,
+      "rollingWer": 0.1462
+    },
+    {
+      "id": "vif8NQcjVf0",
+      "referenceQuality": "manual",
+      "liveCer": 0.1517,
+      "liveWer": 0.1798,
+      "rollingCer": 0.0195,
+      "rollingWer": 0.0284
+    }
+  ]
+}

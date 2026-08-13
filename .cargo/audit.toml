@@ -1,0 +1,36 @@
+# Keep CI strict while documenting advisories that cannot currently be removed.
+# Revisit this list whenever Tauri or tauri-utils changes its GTK/urlpattern stack.
+[advisories]
+ignore = [
+  # Tauri's Linux-only GTK3 graph; absent from `cargo tree --target aarch64-apple-darwin`.
+  "RUSTSEC-2024-0411",
+  "RUSTSEC-2024-0412",
+  "RUSTSEC-2024-0413",
+  "RUSTSEC-2024-0414",
+  "RUSTSEC-2024-0415",
+  "RUSTSEC-2024-0416",
+  "RUSTSEC-2024-0417",
+  "RUSTSEC-2024-0418",
+  "RUSTSEC-2024-0419",
+  "RUSTSEC-2024-0420",
+  "RUSTSEC-2024-0429",
+  "RUSTSEC-2024-0370",
+
+  # Unmaintained UNIC crates pulled through tauri-utils -> urlpattern.
+  # These are informational advisories with no patched release or known exploit.
+  "RUSTSEC-2025-0075",
+  "RUSTSEC-2025-0080",
+  "RUSTSEC-2025-0081",
+  "RUSTSEC-2025-0098",
+  "RUSTSEC-2025-0100",
+]
+
+[output]
+deny = ["warnings"]
+format = "terminal"
+quiet = false
+show_tree = true
+
+[target]
+arch = ["aarch64"]
+os = ["macos"]

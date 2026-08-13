@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "resources/asr": "resources/asr",
+      "resources/asr-runtime": "resources/asr-runtime",
+      "resources/locales/en.lproj": "en.lproj",
+      "resources/locales/ko.lproj": "ko.lproj",
+      "resources/locales/ja.lproj": "ja.lproj"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@ulpaso/markdown",
+  "version": "0.1.0",
+  "description": "Extensible Markdown and ProseMirror JSON conversion primitives used by Ulpaso",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "files": ["dist", "README.md", "LICENSE"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "typescript": "~5.8.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bigmacfive/ulpaso.git",
+    "directory": "packages/markdown"
+  }
+}

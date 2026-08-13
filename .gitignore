@@ -1,0 +1,45 @@
+# JavaScript
+node_modules/
+/dist/
+/packages/*/dist/
+
+# Local motion-graphics workspace and rendered video masters.
+# The optimized README GIF in docs/assets remains tracked.
+/packages/brand-video/
+
+# Rust and generated Tauri state
+/src-tauri/target/
+/src-tauri/gen/
+
+# The relocatable Python runtime is reproducibly assembled during packaging.
+/src-tauri/resources/asr-runtime/
+
+# Local design audits and third-party visual references are not release assets.
+/design-audit-current/
+/design-references/
+/design-qa.md
+
+# Platform assets not used by this macOS-only build.
+/src-tauri/icons/android/
+/src-tauri/icons/ios/
+/src-tauri/icons/Square*.png
+/src-tauri/icons/StoreLogo.png
+/src-tauri/icons/icon.ico
+
+# Retired local assets retained outside the published source set.
+/src/assets/WantedSansVariable.woff2
+/WANTED_SANS_LICENSE.txt
+/src-tauri/resources/WANTED_SANS_LICENSE.txt
+
+# Local environment and editor state
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.swp
+*.swo
+__pycache__/
+*.py[cod]

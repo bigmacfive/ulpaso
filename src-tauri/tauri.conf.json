@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ulpaso",
+  "version": "0.1.0",
+  "identifier": "app.ulpaso.opensource",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build && pnpm prepare:asr-runtime && ./scripts/sign-asr-runtime.sh",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; font-src 'self' data:; img-src 'self' asset: http://asset.localhost data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'",
+      "devCsp": "default-src 'self' http://localhost:1420; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; font-src 'self' data:; img-src 'self' asset: http://asset.localhost data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' http://localhost:1420"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "Ulpaso",
+        "width": 1154,
+        "height": 822,
+        "minWidth": 760,
+        "minHeight": 560,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 8,
+          "y": 16
+        },
+        "shadow": false
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns"
+    ],
+    "resources": {
+      "resources/asr": "resources/asr",
+      "resources/locales/en.lproj": "en.lproj",
+      "resources/locales/ko.lproj": "ko.lproj",
+      "resources/locales/ja.lproj": "ja.lproj"
+    },
+    "category": "Productivity",
+    "shortDescription": "A quiet Markdown editor",
+    "longDescription": "Ulpaso is a focused WYSIWYG Markdown editor for thoughtful writing.",
+    "macOS": {
+      "minimumSystemVersion": "15.0",
+      "signingIdentity": "-",
+      "infoPlist": "Info.plist",
+      "dmg": {
+        "background": "assets/dmg-background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 200
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 200
+        }
+      }
+    }
+  }
+}
