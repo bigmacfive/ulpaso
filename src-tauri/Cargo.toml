@@ -1,6 +1,6 @@
 [package]
 name = "ulpaso"
-version = "0.2.3"
+version = "0.2.4"
 description = "A quiet, focused Markdown editor"
 authors = ["Ulpaso contributors"]
 edition = "2021"

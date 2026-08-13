@@ -12,6 +12,7 @@ const REQUIRED_MISSES_TO_REARM: u8 = 15;
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct MeetingEnvironment {
     microphone_active: bool,
+    system_audio_active: bool,
     bundle_id: String,
     app_name: String,
     window_title: String,
@@ -143,7 +144,9 @@ impl MeetingDetectionController {
 }
 
 fn classify_environment(environment: &MeetingEnvironment) -> Option<MeetingCandidate> {
-    if !environment.microphone_active || environment.bundle_id.is_empty() {
+    if (!environment.microphone_active && !environment.system_audio_active)
+        || environment.bundle_id.is_empty()
+    {
         return None;
     }
 
@@ -223,7 +226,7 @@ fn read_environment() -> MeetingEnvironment {
     let mut bundle_id = [0 as c_char; 256];
     let mut app_name = [0 as c_char; 256];
     let mut window_title = [0 as c_char; 1024];
-    let microphone_active = unsafe {
+    let activity = unsafe {
         ulpaso_meeting_environment(
             bundle_id.as_mut_ptr(),
             bundle_id.len(),
@@ -231,10 +234,11 @@ fn read_environment() -> MeetingEnvironment {
             app_name.len(),
             window_title.as_mut_ptr(),
             window_title.len(),
-        ) == 1
+        )
     };
     MeetingEnvironment {
-        microphone_active,
+        microphone_active: activity & 1 != 0,
+        system_audio_active: activity & 2 != 0,
         bundle_id: buffer_string(&bundle_id),
         app_name: buffer_string(&app_name),
         window_title: buffer_string(&window_title),
@@ -252,13 +256,23 @@ pub fn meeting_detection_status(
 mod tests {
     use super::*;
 
-    fn environment(bundle_id: &str, title: &str, microphone_active: bool) -> MeetingEnvironment {
+    fn environment_with_activity(
+        bundle_id: &str,
+        title: &str,
+        microphone_active: bool,
+        system_audio_active: bool,
+    ) -> MeetingEnvironment {
         MeetingEnvironment {
             microphone_active,
+            system_audio_active,
             bundle_id: bundle_id.into(),
             app_name: "App".into(),
             window_title: title.into(),
         }
+    }
+
+    fn environment(bundle_id: &str, title: &str, microphone_active: bool) -> MeetingEnvironment {
+        environment_with_activity(bundle_id, title, microphone_active, false)
     }
 
     fn zoom() -> MeetingCandidate {
@@ -269,13 +283,17 @@ mod tests {
     }
 
     #[test]
-    fn requires_a_live_microphone_for_desktop_meeting_apps() {
+    fn requires_live_input_or_output_for_desktop_meeting_apps() {
         assert_eq!(
             classify_environment(&environment("us.zoom.xos", "", false)),
             None
         );
         assert_eq!(
             classify_environment(&environment("us.zoom.xos", "", true)),
+            Some(zoom())
+        );
+        assert_eq!(
+            classify_environment(&environment_with_activity("us.zoom.xos", "", false, true)),
             Some(zoom())
         );
     }
@@ -298,6 +316,16 @@ mod tests {
                 true,
             )),
             None
+        );
+        assert_eq!(
+            classify_environment(&environment_with_activity(
+                "com.google.Chrome",
+                "Weekly sync - Google Meet",
+                false,
+                true,
+            ))
+            .map(|candidate| candidate.app_name),
+            Some("Google Meet".into())
         );
     }
 

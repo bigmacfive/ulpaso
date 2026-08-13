@@ -4,6 +4,13 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-08-13
+
+### Fixed
+
+- Detect supported meeting apps when they are playing system audio even if no microphone input device is connected.
+- Keep the native meeting prompt opt-in: audio detection never starts recording until the user selects **Start recording**.
+
 ## [0.2.3] - 2026-08-13
 
 ### Added
