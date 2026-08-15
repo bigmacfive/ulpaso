@@ -34,6 +34,7 @@
     "icon:macos:source": "node scripts/generate-macos-icon.mjs",
     "test": "vitest run",
     "test:native:capture": "./scripts/test-macos-audio-capture.sh",
+    "verify:dmg": "./scripts/verify-dmg.sh",
     "probe:meeting-detection": "./scripts/probe-macos-meeting-detector.sh",
     "test:python": "PYTHONPATH=scripts python3 -m unittest scripts/test_podcast_asr_benchmark.py scripts/test_capture_resampler_benchmark.py scripts/test_full_video_asr_benchmark.py scripts/test_replay_meeting_worker.py scripts/test_worker_protocol_e2e.py scripts/test_prepare_benchmark_assets.py",
     "test:python:worker": "PYTHONPATH=src-tauri/resources/asr src-tauri/resources/asr-runtime/bin/python3 -m unittest src-tauri/resources/asr/test_asr_worker.py src-tauri/resources/asr/test_asr_artifacts.py",
