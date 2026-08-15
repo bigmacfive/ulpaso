@@ -153,10 +153,11 @@ afterEach(() => {
 });
 
 describe("App meeting detection integration", () => {
-  it("asks macOS for microphone access before preparing or starting a meeting", async () => {
+  it("asks macOS for microphone access on first launch and before starting a meeting", async () => {
     microphonePermission = "not-determined";
     const root = await mountApp();
-    mocks.invoke.mockClear();
+
+    await vi.waitFor(() => expect(invokeCalls("meeting_request_microphone_permission")).toHaveLength(1));
 
     root.querySelector<HTMLButtonElement>(".meeting-trigger")!.click();
 

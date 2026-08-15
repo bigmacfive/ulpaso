@@ -1,6 +1,6 @@
 {
   "name": "ulpaso",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "A local Markdown editor with on-device meeting transcription for macOS",
   "license": "MIT",

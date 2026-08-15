@@ -226,7 +226,13 @@ export default function App() {
         flushPendingMeetingDetection();
       });
       void refreshMeetingResources();
-      void refreshMicrophonePermission();
+      void refreshMicrophonePermission().then((status) => {
+        if (status !== "not-determined") return;
+        void requestMicrophonePermission().catch(() => {
+          // The Settings control remains available if macOS cannot present the
+          // first-launch consent sheet yet (for example while the app is not active).
+        });
+      });
       void listen<MeetingState>("meeting://state", (event) => handleMeetingState(event.payload)).then((unlisten) => {
         unlistenMeetingState = unlisten;
       });

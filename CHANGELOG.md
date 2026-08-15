@@ -4,6 +4,12 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-15
+
+### Fixed
+
+- Ask for native microphone consent on first launch when permission has not been decided, so Ulpaso is immediately registered in macOS Microphone privacy settings.
+
 ## [0.5.1] - 2026-08-15
 
 ### Fixed
