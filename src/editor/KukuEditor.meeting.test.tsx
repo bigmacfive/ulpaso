@@ -246,6 +246,11 @@ describe("KukuEditor meeting integration", () => {
     handle!.updateMeeting("session-over-split", "첫 발언 임시 둘", "", 2);
     handle!.updateMeeting("session-over-split", "첫 발언 임시 둘 상대방", "", 3);
     handle!.updateMeeting("session-over-split", "첫 발언 임시 둘 상대방 임시 넷", "", 4);
+
+    const liveMarkdown = handle!.getMarkdown();
+    expect(liveMarkdown).not.toContain("**Speaker 3**");
+    expect(liveMarkdown).not.toContain("**Speaker 4**");
+
     handle!.finalizeMeeting("session-over-split", [
       { speaker: 1, text: "첫 발언 임시 둘" },
       { speaker: 2, text: "상대방 임시 넷" },

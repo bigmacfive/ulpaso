@@ -80,6 +80,7 @@ interface ActiveMeetingDocument {
   title: string;
   lastStableText: string;
   segments: MeetingTranscriptSegment[];
+  provisionalSpeakers: Map<number, number>;
 }
 
 let markdownInitialized = false;
@@ -199,6 +200,20 @@ export default function KukuEditor(props: KukuEditorProps) {
   function meetingNodes(title: string, segments: MeetingTranscriptSegment[]): ProseMirrorNode[] {
     const schema = editor.view.state.schema;
     return createMeetingDocumentNodes(title, segments).map((node) => schema.nodeFromJSON(node));
+  }
+
+  function provisionalMeetingSpeaker(
+    meeting: ActiveMeetingDocument,
+    speakerId: number | undefined,
+  ): number | null {
+    const previous = meeting.segments.at(-1)?.speaker ?? null;
+    if (speakerId == null) return previous;
+    const existing = meeting.provisionalSpeakers.get(speakerId);
+    if (existing != null) return existing;
+    if (meeting.provisionalSpeakers.size >= 2) return previous;
+    const provisional = meeting.provisionalSpeakers.size + 1;
+    meeting.provisionalSpeakers.set(speakerId, provisional);
+    return provisional;
   }
 
   function replaceMeetingContent(
@@ -426,7 +441,13 @@ export default function KukuEditor(props: KukuEditorProps) {
       const topLevel = $from.depth >= 1 ? $from.node(1) : null;
       const from = topLevel && !topLevel.textContent.trim() ? $from.before(1) : $from.depth >= 1 ? $from.after(1) : state.selection.to;
       const to = topLevel && !topLevel.textContent.trim() ? from + topLevel.nodeSize : from;
-      activeMeeting = { id: sessionId, title, lastStableText: "", segments: [] };
+      activeMeeting = {
+        id: sessionId,
+        title,
+        lastStableText: "",
+        segments: [],
+        provisionalSpeakers: new Map(),
+      };
       followMeetingTail = true;
       const nodes = meetingNodes(title, []);
       const fragment = Fragment.fromArray(nodes);
@@ -443,12 +464,12 @@ export default function KukuEditor(props: KukuEditorProps) {
       let updatedIncrementally = false;
       let needsFullReplacement = false;
       const isFirstStableText = !meeting.lastStableText;
+      const normalizedSpeaker = provisionalMeetingSpeaker(meeting, speakerId);
       if (stableText !== meeting.lastStableText) {
         if (stableText.startsWith(meeting.lastStableText)) {
           const delta = stableText.slice(meeting.lastStableText.length).trim();
           if (delta) {
             const previous = meeting.segments.at(-1);
-            const normalizedSpeaker = speakerId ?? previous?.speaker ?? null;
             if (previous && previous.speaker === normalizedSpeaker) {
               const separator = previous.text ? " " : "";
               previous.text = `${previous.text}${separator}${delta}`;
@@ -465,7 +486,7 @@ export default function KukuEditor(props: KukuEditorProps) {
           meeting.segments = reconcileMeetingTranscriptSegments(
             meeting.segments,
             stableText,
-            speakerId,
+            normalizedSpeaker ?? undefined,
           );
           needsFullReplacement = true;
         }
