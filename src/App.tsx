@@ -29,6 +29,7 @@ import {
   type RecentDocument,
 } from "./document/storage";
 import {
+  MEETING_RESOURCE_CONSENT_KEY,
   formatBytes,
   hasMeetingResourceConsent,
   saveMeetingResourceConsent,
@@ -71,6 +72,7 @@ type PendingMeetingStart = {
 type AppUpdate = { version: string };
 type UpdateProgress = { downloaded: number; total: number | null };
 type MicrophonePermission = "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
+type MeetingResourceRemoval = { removedBytes: number };
 
 const IDLE_MEETING: MeetingState = {
   phase: "idle", sessionId: null, progress: null, message: null,
@@ -162,6 +164,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [microphonePermission, setMicrophonePermission] = createSignal<MicrophonePermission>("unavailable");
   const [microphonePermissionBusy, setMicrophonePermissionBusy] = createSignal(false);
+  const [localDataRemovalBusy, setLocalDataRemovalBusy] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
   const [appUpdate, setAppUpdate] = createSignal<AppUpdate | null>(null);
   const [updatePhase, setUpdatePhase] = createSignal<UpdateNoticePhase>("available");
@@ -527,6 +530,21 @@ export default function App() {
     return t("settings.meetingDownload", { size: formatBytes(bytes) });
   }
 
+  async function removeLocalMeetingData() {
+    if (!isNative || localDataRemovalBusy() || meeting().phase !== "idle") return;
+    setLocalDataRemovalBusy(true);
+    try {
+      const result = await invoke<MeetingResourceRemoval>("meeting_remove_local_data");
+      try { localStorage.removeItem(MEETING_RESOURCE_CONSENT_KEY); } catch { /* storage can be disabled */ }
+      await refreshMeetingResources();
+      showToast(t("settings.localDataRemoved", { size: formatBytes(result.removedBytes) }), "success", 4200);
+    } catch (error) {
+      showToast(readableError(error, t("settings.localDataRemoveFailed")), "error", 4200);
+    } finally {
+      setLocalDataRemovalBusy(false);
+    }
+  }
+
   async function retryMeeting(microphoneOnly = false, systemOnly = false) {
     try { await invoke("meeting_cancel"); } catch { /* already reset */ }
     setMeetingErrorOpen(false);
@@ -884,11 +902,14 @@ export default function App() {
           editorFullWidth={editorFullWidth()}
           microphonePermission={microphonePermission()}
           microphonePermissionBusy={microphonePermissionBusy()}
+          localDataRemovalBusy={localDataRemovalBusy()}
+          localDataRemovalDisabled={!isNative || meeting().phase !== "idle"}
           onClose={() => setSettingsOpen(false)}
           onToggleTheme={toggleTheme}
           onToggleMeetingDetection={toggleMeetingDetection}
           onToggleEditorFullWidth={toggleEditorFullWidth}
           onManageMicrophonePermission={() => void manageMicrophonePermission()}
+          onRemoveLocalMeetingData={() => void removeLocalMeetingData()}
         />
       </Show>
 

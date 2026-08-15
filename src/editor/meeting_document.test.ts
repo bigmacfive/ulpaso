@@ -49,6 +49,36 @@ describe("meeting document markdown", () => {
     );
   });
 
+  it("trusts final two-speaker cleanup over four provisional live labels", () => {
+    const cleaned = preserveSpeakerBoundaries(
+      [
+        { speaker: 1, text: "첫 발언" },
+        { speaker: 2, text: "두 번째 임시 라벨" },
+        { speaker: 3, text: "상대방 발언" },
+        { speaker: 4, text: "네 번째 임시 라벨" },
+      ],
+      [
+        { speaker: 1, text: "첫 발언 두 번째 임시 라벨" },
+        { speaker: 2, text: "상대방 발언 네 번째 임시 라벨" },
+      ],
+    );
+
+    expect(cleaned.map((segment) => segment.speaker)).toEqual([1, 2]);
+  });
+
+  it("compacts sparse final speaker labels in first-appearance order", () => {
+    const cleaned = preserveSpeakerBoundaries(
+      [{ speaker: 1, text: "실시간 문장" }],
+      [
+        { speaker: 1, text: "첫 화자" },
+        { speaker: 3, text: "둘째 화자" },
+        { speaker: 1, text: "첫 화자 마무리" },
+      ],
+    );
+
+    expect(cleaned.map((segment) => segment.speaker)).toEqual([1, 2, 1]);
+  });
+
   it("serializes final speaker turns as editable standard markdown", () => {
     const content = createMeetingDocumentNodes("미팅 노트 · 2026-08-04 14:30", [
       { speaker: 1, text: "첫 번째 발화 내용" },

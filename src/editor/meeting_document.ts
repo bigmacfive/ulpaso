@@ -118,15 +118,30 @@ function preserveSpeakerBoundaries(
   previousSegments: MeetingTranscriptSegment[],
   correctedSegments: MeetingTranscriptSegment[],
 ): MeetingTranscriptSegment[] {
-  const previous = previousSegments.filter((segment) => segment.text.trim());
-  const corrected = correctedSegments.filter((segment) => segment.text.trim());
+  const compactSpeakerLabels = (segments: MeetingTranscriptSegment[]) => {
+    const labels = new Map<number, number>();
+    return segments
+      .filter((segment) => segment.text.trim())
+      .map((segment) => {
+        if (segment.speaker == null) return { ...segment, speaker: null };
+        if (!labels.has(segment.speaker)) labels.set(segment.speaker, labels.size + 1);
+        return { ...segment, speaker: labels.get(segment.speaker) };
+      });
+  };
+  const previous = compactSpeakerLabels(previousSegments);
+  const corrected = compactSpeakerLabels(correctedSegments);
   const previousSpeakers = new Set(previous.flatMap((segment) => (
     segment.speaker == null ? [] : [segment.speaker]
   )));
   const correctedSpeakers = new Set(corrected.flatMap((segment) => (
     segment.speaker == null ? [] : [segment.speaker]
   )));
-  if (previousSpeakers.size < 2 || correctedSpeakers.size >= previousSpeakers.size) return corrected;
+  // Live Sortformer labels are provisional and can briefly occupy all four
+  // slots even in a two-person recording. Once the bounded full-file pass
+  // finds two or more speakers, trust it instead of restoring those noisy
+  // live labels. Preserve live boundaries only for the narrow regression we
+  // can defend: exactly two stable live speakers collapsed to zero or one.
+  if (previousSpeakers.size !== 2 || correctedSpeakers.size >= 2) return corrected;
 
   const correctedText = corrected.map((segment) => segment.text.trim()).join(" ");
   if (!correctedText) return previous;

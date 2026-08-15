@@ -1,11 +1,14 @@
-//! Read-only inspection of local transcription resources.
+//! Inspection and explicit removal of local transcription resources.
 //!
 //! The UI uses this before the first meeting so it can disclose the real
 //! download and disk cost instead of beginning a multi-gigabyte setup without
 //! context.
 
 use serde::Serialize;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 const RUNTIME_BYTES: u64 = 500_000_000;
 const ASR_MODEL_BYTES: u64 = 1_020_000_000;
@@ -23,6 +26,12 @@ pub struct MeetingResourceStatus {
     pub estimated_installed_bytes: u64,
     pub available_disk_bytes: Option<u64>,
     pub disk_space_sufficient: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingResourceRemoval {
+    pub removed_bytes: u64,
 }
 
 pub(crate) fn inspect(resource_dir: &Path, app_data: &Path) -> MeetingResourceStatus {
@@ -89,6 +98,44 @@ fn model_ready(path: &Path) -> bool {
         })
 }
 
+pub(crate) fn remove_downloaded(app_data: &Path) -> Result<MeetingResourceRemoval, String> {
+    let targets = [
+        app_data.join("Models"),
+        app_data.join("ASR Runtime"),
+        app_data.join("ASR Tools"),
+        app_data.join("Meeting Recovery"),
+    ];
+    let removed_bytes = targets.iter().map(|path| directory_bytes(path)).sum();
+    for target in targets {
+        if !target.exists() {
+            continue;
+        }
+        if target.is_dir() {
+            fs::remove_dir_all(&target)
+        } else {
+            fs::remove_file(&target)
+        }
+        .map_err(|error| format!("Could not remove {}: {error}", target.display()))?;
+    }
+    Ok(MeetingResourceRemoval { removed_bytes })
+}
+
+fn directory_bytes(path: &Path) -> u64 {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return 0;
+    };
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return metadata.len();
+    }
+    fs::read_dir(path)
+        .ok()
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| directory_bytes(&entry.path()))
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,6 +177,31 @@ mod tests {
         let status = inspect(&resources, &data);
         assert!(status.ready);
         assert_eq!(status.estimated_download_bytes, 0);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn removes_only_downloaded_transcription_data() {
+        let root = test_root();
+        let data = root.join("data");
+        std::fs::create_dir_all(data.join("Models/model")).expect("create models");
+        std::fs::create_dir_all(data.join("ASR Runtime/bin")).expect("create runtime");
+        std::fs::create_dir_all(data.join("ASR Tools")).expect("create tools");
+        std::fs::create_dir_all(data.join("Meeting Recovery")).expect("create recovery");
+        std::fs::write(data.join("Models/model/weights"), b"1234").expect("write model");
+        std::fs::write(data.join("ASR Runtime/bin/python3"), b"12").expect("write runtime");
+        std::fs::write(data.join("ASR Tools/uv"), b"1").expect("write tool");
+        std::fs::write(data.join("Meeting Recovery/session.wav"), b"123").expect("write audio");
+        std::fs::write(data.join("keep.txt"), b"document state").expect("write unrelated data");
+
+        let removal = remove_downloaded(&data).expect("remove downloaded data");
+
+        assert_eq!(removal.removed_bytes, 10);
+        assert!(!data.join("Models").exists());
+        assert!(!data.join("ASR Runtime").exists());
+        assert!(!data.join("ASR Tools").exists());
+        assert!(!data.join("Meeting Recovery").exists());
+        assert!(data.join("keep.txt").exists());
         let _ = std::fs::remove_dir_all(root);
     }
 }
