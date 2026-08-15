@@ -4,6 +4,12 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-08-15
+
+### Changed
+
+- Clarified that the Settings cleanup removes downloaded speech-recognition and speaker-separation models, runtime files, caches, and recovery audio while leaving Markdown documents untouched.
+
 ## [0.5.4] - 2026-08-15
 
 ### Fixed
