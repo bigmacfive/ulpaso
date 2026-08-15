@@ -1,0 +1,328 @@
+{
+  "measuredAt": "2026-08-13",
+  "sampleCount": 4,
+  "audioSeconds": 479.987,
+  "referenceWords": 895,
+  "referenceCharacters": 3017,
+  "capturePath": {
+    "inputSampleRate": 48000,
+    "outputSampleRate": 16000,
+    "filterTaps": 255,
+    "cutoffGuard": 0.9,
+    "mixer": "clip(system, -1, 1)",
+    "windowSeconds": 20,
+    "meetingContext": "",
+    "cleanup": "transcribe_meeting_audio + sanitize_stream_text"
+  },
+  "selectionGate": {
+    "materialWordEditRegression": 5,
+    "materialAbsoluteWerRegression": 0.02,
+    "maximumCandidateRtfRatio": 1.5,
+    "requireAggregateNonRegression": true,
+    "requireNoMaterialSampleRegression": true,
+    "requirePooledAndMacroWerImprovement": true
+  },
+  "fixtureInputs": [
+    {
+      "id": "h7p-xSmMtg4",
+      "language": "Korean",
+      "audioSeconds": 120.0,
+      "referenceWords": 193,
+      "referenceCharacters": 558,
+      "audioSha256": "7d72829b1e59b5e0694b8dd190181ae8aa79b49f18151d275b87de33d324c50d",
+      "subtitleSha256": "8f72e341166ef0bd5cfce06d952ae667df389615b33565d80e6dd5957679e821",
+      "preparedFloat32Sha256": "7ba4c3a0bc05b52bdd49be661f6786f4cf0b118e44a7468b970673f1f40567c4"
+    },
+    {
+      "id": "Ux-TMWnmntM",
+      "language": "Korean",
+      "audioSeconds": 120.0,
+      "referenceWords": 193,
+      "referenceCharacters": 576,
+      "audioSha256": "7c0709eb3af99e747ce708956411c479333df72e08214786da9d09ca03aa60f2",
+      "subtitleSha256": "0046e0b4651878a273b49e802e47742db250f2d670e0343b2bed7a6472da8207",
+      "preparedFloat32Sha256": "c663f33004df2201302ebe505630c9964934de40bb6c8ff560588e653f001186"
+    },
+    {
+      "id": "cSwaRkus1q4",
+      "language": "Korean",
+      "audioSeconds": 119.9935,
+      "referenceWords": 192,
+      "referenceCharacters": 499,
+      "audioSha256": "d04100d0b2d2ff721d3826c65d2ba7ff9d68c624c37b5bfd98637a0fe90ec36e",
+      "subtitleSha256": "9d0c58db319d72a2feb064a1c2462fc058c6ed5e478e1c803dd498728b8c7c18",
+      "preparedFloat32Sha256": "438833d967fd09c3995757fa3f39ecc0e4320fa4698f8cd80f99b4e086003eb7"
+    },
+    {
+      "id": "vif8NQcjVf0",
+      "language": "English",
+      "audioSeconds": 119.9935,
+      "referenceWords": 317,
+      "referenceCharacters": 1384,
+      "audioSha256": "682894922efd1f179499afbfb04a564079813b9fffb669caad0cfba33b97ecb4",
+      "subtitleSha256": "ebabfecc90188ff983cf1dca81ed2d2fb7c00608c2567a244bcf04198cbd39b0",
+      "preparedFloat32Sha256": "d2d80c10251c6095729e099aa07b61f92dc5f81f0dbd844f16c8d92344a322f6"
+    }
+  ],
+  "preparedInputSetSha256": "29995e7058a8be1a590e4748f730f303132396b509f9bc791822884546480baa",
+  "models": [
+    {
+      "id": "qwen3-asr-0.6b-8bit",
+      "repo": "mlx-community/Qwen3-ASR-0.6B-8bit",
+      "revision": "89e96d92ba34aca20b3e29fb10cc284097d1219f",
+      "quantizationBits": 8,
+      "weightBytes": 1006229426,
+      "weightSha256": "b5bfe4abc1b4c6e58b633096682ec2b6297298add1527119936107d211adf0e8",
+      "workerSha256": "d5047ed79036fc5eb6d936bfdeb17a8580d3076b24c2f91fa2b111d7b0ba89ab",
+      "preparedInputSetSha256": "29995e7058a8be1a590e4748f730f303132396b509f9bc791822884546480baa",
+      "summary": {
+        "wordEdits": 155,
+        "characterEdits": 231,
+        "macroWer": 0.19764188858332923,
+        "pooledWer": 0.17318435754189945,
+        "macroCer": 0.1035978370219109,
+        "pooledCer": 0.0765661252900232,
+        "totalInferenceSeconds": 49.74026504100766,
+        "pooledRealTimeFactor": 0.10362835877014932,
+        "mlxPeakMemoryBytes": 1919648871,
+        "mlxActiveMemoryBytes": 1011860972,
+        "processPeakRssBytes": 1351335936,
+        "osPeakMemoryFootprintBytes": 2532804576
+      },
+      "samples": [
+        {
+          "id": "h7p-xSmMtg4",
+          "wordEdits": 51,
+          "characterEdits": 92,
+          "wer": 0.26424870466321243,
+          "cer": 0.16487455197132617,
+          "realTimeFactor": 0.10917
+        },
+        {
+          "id": "Ux-TMWnmntM",
+          "wordEdits": 36,
+          "characterEdits": 51,
+          "wer": 0.18652849740932642,
+          "cer": 0.08854166666666667,
+          "realTimeFactor": 0.100131
+        },
+        {
+          "id": "cSwaRkus1q4",
+          "wordEdits": 61,
+          "characterEdits": 76,
+          "wer": 0.3177083333333333,
+          "cer": 0.1523046092184369,
+          "realTimeFactor": 0.105343
+        },
+        {
+          "id": "vif8NQcjVf0",
+          "wordEdits": 7,
+          "characterEdits": 12,
+          "wer": 0.022082018927444796,
+          "cer": 0.008670520231213872,
+          "realTimeFactor": 0.087789
+        }
+      ],
+      "decision": {
+        "productionSupported": true,
+        "fullVideoBenchmarkStarted": true,
+        "reason": "keep-current-production-model"
+      }
+    },
+    {
+      "id": "qwen3-asr-1.7b-8bit",
+      "repo": "mlx-community/Qwen3-ASR-1.7B-8bit",
+      "revision": "a8379a2e2f9e313c9292cdf1af4055ab56d50d55",
+      "quantizationBits": 8,
+      "weightBytes": 2463307541,
+      "weightSha256": "bf304b009cc7eca79283056f787b44c952d24ac22cec787b39732bba3c23c13c",
+      "workerSha256": "d5047ed79036fc5eb6d936bfdeb17a8580d3076b24c2f91fa2b111d7b0ba89ab",
+      "preparedInputSetSha256": "29995e7058a8be1a590e4748f730f303132396b509f9bc791822884546480baa",
+      "summary": {
+        "wordEdits": 149,
+        "characterEdits": 218,
+        "macroWer": 0.19081578890913847,
+        "pooledWer": 0.1664804469273743,
+        "macroCer": 0.09822777888037247,
+        "pooledCer": 0.07225720914816043,
+        "totalInferenceSeconds": 96.93094454100356,
+        "pooledRealTimeFactor": 0.20194493713580486,
+        "mlxPeakMemoryBytes": 3508592867,
+        "mlxActiveMemoryBytes": 2469688556,
+        "processPeakRssBytes": 1788608512,
+        "osPeakMemoryFootprintBytes": 4229860424
+      },
+      "samples": [
+        {
+          "id": "h7p-xSmMtg4",
+          "wordEdits": 49,
+          "characterEdits": 79,
+          "wer": 0.2538860103626943,
+          "cer": 0.14157706093189965,
+          "realTimeFactor": 0.213397
+        },
+        {
+          "id": "Ux-TMWnmntM",
+          "wordEdits": 44,
+          "characterEdits": 49,
+          "wer": 0.22797927461139897,
+          "cer": 0.08506944444444445,
+          "realTimeFactor": 0.201312
+        },
+        {
+          "id": "cSwaRkus1q4",
+          "wordEdits": 51,
+          "characterEdits": 79,
+          "wer": 0.265625,
+          "cer": 0.15831663326653306,
+          "realTimeFactor": 0.209047
+        },
+        {
+          "id": "vif8NQcjVf0",
+          "wordEdits": 5,
+          "characterEdits": 11,
+          "wer": 0.015772870662460567,
+          "cer": 0.007947976878612716,
+          "realTimeFactor": 0.170426
+        }
+      ],
+      "decision": {
+        "productionSupported": false,
+        "fullVideoBenchmarkStarted": false,
+        "reason": "material-sample-regression-and-cost"
+      }
+    },
+    {
+      "id": "qwen3-asr-1.7b-4bit",
+      "repo": "mlx-community/Qwen3-ASR-1.7B-4bit",
+      "revision": "78a389c776a5483b2d0d4ea5494e11012e0d6159",
+      "quantizationBits": 4,
+      "weightBytes": 1603081617,
+      "weightSha256": "9848eaf7a5c1589c671b35035ac27b72e248dd0c604eacae547e7e403d29db45",
+      "workerSha256": "d5047ed79036fc5eb6d936bfdeb17a8580d3076b24c2f91fa2b111d7b0ba89ab",
+      "preparedInputSetSha256": "29995e7058a8be1a590e4748f730f303132396b509f9bc791822884546480baa",
+      "summary": {
+        "wordEdits": 161,
+        "characterEdits": 245,
+        "macroWer": 0.2043735366167601,
+        "pooledWer": 0.17988826815642459,
+        "macroCer": 0.1083687978477829,
+        "pooledCer": 0.08120649651972157,
+        "totalInferenceSeconds": 48.294930083997315,
+        "pooledRealTimeFactor": 0.1006171627231515,
+        "mlxPeakMemoryBytes": 2648367331,
+        "mlxActiveMemoryBytes": 1609463020,
+        "processPeakRssBytes": 1960722432,
+        "osPeakMemoryFootprintBytes": 3342043656
+      },
+      "samples": [
+        {
+          "id": "h7p-xSmMtg4",
+          "wordEdits": 52,
+          "characterEdits": 93,
+          "wer": 0.2694300518134715,
+          "cer": 0.16666666666666666,
+          "realTimeFactor": 0.105463
+        },
+        {
+          "id": "Ux-TMWnmntM",
+          "wordEdits": 43,
+          "characterEdits": 55,
+          "wer": 0.22279792746113988,
+          "cer": 0.0954861111111111,
+          "realTimeFactor": 0.101075
+        },
+        {
+          "id": "cSwaRkus1q4",
+          "wordEdits": 57,
+          "characterEdits": 79,
+          "wer": 0.296875,
+          "cer": 0.15831663326653306,
+          "realTimeFactor": 0.100863
+        },
+        {
+          "id": "vif8NQcjVf0",
+          "wordEdits": 9,
+          "characterEdits": 18,
+          "wer": 0.028391167192429023,
+          "cer": 0.01300578034682081,
+          "realTimeFactor": 0.084047
+        }
+      ],
+      "decision": {
+        "productionSupported": false,
+        "fullVideoBenchmarkStarted": false,
+        "reason": "material-sample-and-aggregate-regression"
+      }
+    },
+    {
+      "id": "qwen3-asr-0.6b-bf16",
+      "repo": "mlx-community/Qwen3-ASR-0.6B-bf16",
+      "revision": "eae2b51f96265328f1e7beced788adb0e4536f92",
+      "quantizationBits": 16,
+      "weightBytes": 1564921888,
+      "weightSha256": "a6e635fd9c8dfd5cdd7465db9bd8c947ab30737b90b83b6b09c304e836bb8a7f",
+      "workerSha256": "d5047ed79036fc5eb6d936bfdeb17a8580d3076b24c2f91fa2b111d7b0ba89ab",
+      "preparedInputSetSha256": "29995e7058a8be1a590e4748f730f303132396b509f9bc791822884546480baa",
+      "summary": {
+        "wordEdits": 155,
+        "characterEdits": 226,
+        "macroWer": 0.1976486351290978,
+        "pooledWer": 0.17318435754189945,
+        "macroCer": 0.10135769365273527,
+        "pooledCer": 0.07490884985084521,
+        "totalInferenceSeconds": 205.86700037500123,
+        "pooledRealTimeFactor": 0.4289012001887577,
+        "mlxPeakMemoryBytes": 3547316634,
+        "mlxActiveMemoryBytes": 1881753254,
+        "processPeakRssBytes": 1053769728,
+        "osPeakMemoryFootprintBytes": 4413114408
+      },
+      "samples": [
+        {
+          "id": "h7p-xSmMtg4",
+          "wordEdits": 50,
+          "characterEdits": 87,
+          "wer": 0.25906735751295334,
+          "cer": 0.15591397849462366,
+          "realTimeFactor": 0.471792
+        },
+        {
+          "id": "Ux-TMWnmntM",
+          "wordEdits": 36,
+          "characterEdits": 51,
+          "wer": 0.18652849740932642,
+          "cer": 0.08854166666666667,
+          "realTimeFactor": 0.310333
+        },
+        {
+          "id": "cSwaRkus1q4",
+          "wordEdits": 62,
+          "characterEdits": 76,
+          "wer": 0.3229166666666667,
+          "cer": 0.1523046092184369,
+          "realTimeFactor": 0.466926
+        },
+        {
+          "id": "vif8NQcjVf0",
+          "wordEdits": 7,
+          "characterEdits": 12,
+          "wer": 0.022082018927444796,
+          "cer": 0.008670520231213872,
+          "realTimeFactor": 0.452422
+        }
+      ],
+      "decision": {
+        "productionSupported": false,
+        "fullVideoBenchmarkStarted": false,
+        "reason": "no-pooled-or-macro-wer-gain-and-unreasonable-cost"
+      }
+    }
+  ],
+  "decision": {
+    "selectedModelId": "qwen3-asr-0.6b-8bit",
+    "productionChangeSupported": false,
+    "reason": "The 1.7B 8-bit model improved pooled errors but materially regressed one manual Korean fixture and nearly doubled RTF; the 1.7B 4-bit model regressed aggregate WER/CER and the same Korean fixture; the 0.6B bf16 model tied pooled word errors, slightly regressed macro WER, and ran over four times slower."
+  },
+  "committedMediaOrTranscripts": false
+}

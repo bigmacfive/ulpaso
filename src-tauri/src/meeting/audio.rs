@@ -20,27 +20,156 @@ pub(crate) fn bounded_audio_take(ready: usize, forwarded: usize) -> usize {
         .min(MAX_MEETING_SAMPLES.saturating_sub(forwarded))
 }
 
-pub(crate) fn resample_linear(input: &[f32], input_rate: f64, output_rate: f64) -> Vec<f32> {
-    if input.is_empty() || input_rate <= 0.0 || output_rate <= 0.0 {
-        return Vec::new();
+const RESAMPLER_FILTER_TAPS: usize = 255;
+const RESAMPLER_CUTOFF_GUARD: f64 = 0.90;
+
+/// Stateful sample-rate conversion for independently delivered capture streams.
+///
+/// Downsampling uses a windowed-sinc low-pass filter before selecting output
+/// samples. Both the filter history and the bounded phase accumulator survive
+/// callback boundaries, so splitting the same input into differently sized
+/// capture buffers does not change either its samples or its eventual length.
+pub(crate) struct StreamingResampler {
+    output_rate: f64,
+    input_rate: Option<f64>,
+    phase: f64,
+    coefficients: Vec<f32>,
+    history: Vec<f32>,
+    history_cursor: usize,
+}
+
+impl StreamingResampler {
+    pub(crate) fn new(output_rate: f64) -> Self {
+        Self {
+            output_rate,
+            input_rate: None,
+            phase: 0.0,
+            coefficients: Vec::new(),
+            history: Vec::new(),
+            history_cursor: 0,
+        }
     }
-    if (input_rate - output_rate).abs() < 1.0 {
-        return input.to_vec();
+
+    pub(crate) fn process(&mut self, input: &[f32], input_rate: f64) -> Vec<f32> {
+        if !input_rate.is_finite()
+            || input_rate <= 0.0
+            || !self.output_rate.is_finite()
+            || self.output_rate <= 0.0
+        {
+            self.clear();
+            return Vec::new();
+        }
+
+        if self.input_rate != Some(input_rate) {
+            self.configure(input_rate);
+        }
+        if input.is_empty() {
+            return Vec::new();
+        }
+        if input_rate == self.output_rate {
+            return input.to_vec();
+        }
+
+        let estimated_len =
+            ((self.phase + input.len() as f64 * self.output_rate) / input_rate).floor() as usize;
+        let mut output = Vec::with_capacity(estimated_len);
+        for &sample in input {
+            self.history[self.history_cursor] = sample;
+            self.history_cursor = (self.history_cursor + 1) % self.history.len();
+            self.phase += self.output_rate;
+
+            while self.phase >= input_rate {
+                let overshoot = self.phase - input_rate;
+                let current = self.filtered_sample(0);
+                if overshoot == 0.0 {
+                    output.push(current);
+                } else {
+                    let fraction = (1.0 - overshoot / self.output_rate).clamp(0.0, 1.0) as f32;
+                    let previous = self.filtered_sample(1);
+                    output.push(previous + (current - previous) * fraction);
+                }
+                self.phase -= input_rate;
+            }
+        }
+        output
     }
-    let output_len = ((input.len() as f64 * output_rate / input_rate).round() as usize).max(1);
-    let scale = input_rate / output_rate;
-    (0..output_len)
+
+    fn configure(&mut self, input_rate: f64) {
+        self.input_rate = Some(input_rate);
+        self.phase = 0.0;
+        self.coefficients = if input_rate > self.output_rate {
+            low_pass_coefficients(input_rate, self.output_rate)
+        } else {
+            vec![1.0]
+        };
+        // One extra slot lets fractional output positions interpolate the
+        // current and previous filtered input without losing the oldest tap.
+        self.history = vec![0.0; self.coefficients.len() + 1];
+        self.history_cursor = 0;
+    }
+
+    fn clear(&mut self) {
+        self.input_rate = None;
+        self.phase = 0.0;
+        self.coefficients.clear();
+        self.history.clear();
+        self.history_cursor = 0;
+    }
+
+    fn filtered_sample(&self, delay: usize) -> f32 {
+        let history_len = self.history.len();
+        self.coefficients
+            .iter()
+            .enumerate()
+            .map(|(lag, coefficient)| {
+                let index = (self.history_cursor + history_len - 1 - delay - lag) % history_len;
+                coefficient * self.history[index]
+            })
+            .sum()
+    }
+}
+
+fn low_pass_coefficients(input_rate: f64, output_rate: f64) -> Vec<f32> {
+    let cutoff = 0.5 * output_rate / input_rate * RESAMPLER_CUTOFF_GUARD;
+    let center = (RESAMPLER_FILTER_TAPS - 1) as f64 / 2.0;
+    let mut coefficients = (0..RESAMPLER_FILTER_TAPS)
         .map(|index| {
-            let position = index as f64 * scale;
-            let left = position.floor() as usize;
-            let right = (left + 1).min(input.len() - 1);
-            let fraction = (position - left as f64) as f32;
-            input[left.min(input.len() - 1)] * (1.0 - fraction) + input[right] * fraction
+            let index = index as f64;
+            let offset = index - center;
+            let sinc_argument = 2.0 * cutoff * offset;
+            let sinc = if sinc_argument.abs() < f64::EPSILON {
+                1.0
+            } else {
+                (std::f64::consts::PI * sinc_argument).sin()
+                    / (std::f64::consts::PI * sinc_argument)
+            };
+            let window = 0.42
+                - 0.5
+                    * (2.0 * std::f64::consts::PI * index / (RESAMPLER_FILTER_TAPS - 1) as f64)
+                        .cos()
+                + 0.08
+                    * (4.0 * std::f64::consts::PI * index / (RESAMPLER_FILTER_TAPS - 1) as f64)
+                        .cos();
+            2.0 * cutoff * sinc * window
         })
+        .collect::<Vec<_>>();
+    let gain = coefficients.iter().sum::<f64>();
+    for coefficient in &mut coefficients {
+        *coefficient /= gain;
+    }
+    coefficients
+        .into_iter()
+        .map(|coefficient| coefficient as f32)
         .collect()
 }
 
-fn mix_audio(system: &[f32], microphone: &[f32], length: usize, microphone_only: bool) -> Vec<f32> {
+fn mix_audio(
+    system: &[f32],
+    microphone: &[f32],
+    length: usize,
+    microphone_only: bool,
+    system_only: bool,
+) -> Vec<f32> {
     (0..length)
         .map(|index| {
             let mic = microphone.get(index).copied().unwrap_or(0.0);
@@ -48,6 +177,9 @@ fn mix_audio(system: &[f32], microphone: &[f32], length: usize, microphone_only:
                 return mic.clamp(-1.0, 1.0);
             }
             let desktop = system.get(index).copied().unwrap_or(0.0);
+            if system_only {
+                return desktop.clamp(-1.0, 1.0);
+            }
             (desktop * 0.65 + mic * 0.82).tanh()
         })
         .collect()
@@ -140,7 +272,12 @@ impl TimestampMixer {
             .saturating_sub(self.cursor)
     }
 
-    pub(crate) fn take(&mut self, length: usize, microphone_only: bool) -> Vec<f32> {
+    pub(crate) fn take(
+        &mut self,
+        length: usize,
+        microphone_only: bool,
+        system_only: bool,
+    ) -> Vec<f32> {
         let end = self.cursor.saturating_add(length);
         let system = self
             .system
@@ -150,7 +287,7 @@ impl TimestampMixer {
             .microphone
             .get(self.cursor..end)
             .unwrap_or_else(|| self.microphone.get(self.cursor..).unwrap_or(&[]));
-        let mixed = mix_audio(system, microphone, length, microphone_only);
+        let mixed = mix_audio(system, microphone, length, microphone_only, system_only);
         self.cursor = end;
         self.compact();
         mixed
@@ -186,10 +323,97 @@ fn prepend_silence(target: &mut Vec<f32>, length: usize) {
 mod tests {
     use super::*;
 
+    fn tone(frequency: f64, sample_rate: f64, length: usize) -> Vec<f32> {
+        (0..length)
+            .map(|index| {
+                (2.0 * std::f64::consts::PI * frequency * index as f64 / sample_rate).sin() as f32
+            })
+            .collect()
+    }
+
+    fn rms(samples: &[f32]) -> f64 {
+        (samples
+            .iter()
+            .map(|sample| f64::from(*sample).powi(2))
+            .sum::<f64>()
+            / samples.len() as f64)
+            .sqrt()
+    }
+
     #[test]
-    fn resamples_to_sixteen_kilohertz() {
+    fn one_second_at_forty_eight_kilohertz_has_exact_output_length() {
         let input = vec![0.0; 48_000];
-        assert_eq!(resample_linear(&input, 48_000.0, 16_000.0).len(), 16_000);
+        let mut resampler = StreamingResampler::new(16_000.0);
+        assert_eq!(resampler.process(&input, 48_000.0).len(), 16_000);
+    }
+
+    #[test]
+    fn preserves_one_kilohertz_tone_when_downsampling() {
+        let input = tone(1_000.0, 48_000.0, 48_000);
+        let mut resampler = StreamingResampler::new(16_000.0);
+        let output = resampler.process(&input, 48_000.0);
+        let settled = &output[RESAMPLER_FILTER_TAPS..];
+        let amplitude_ratio = rms(settled) / rms(&input[RESAMPLER_FILTER_TAPS * 3..]);
+        assert!(
+            (0.98..=1.02).contains(&amplitude_ratio),
+            "1 kHz amplitude ratio was {amplitude_ratio}"
+        );
+    }
+
+    #[test]
+    fn suppresses_twelve_kilohertz_alias_before_downsampling() {
+        let input = tone(12_000.0, 48_000.0, 48_000);
+        let naive = input.iter().skip(2).step_by(3).copied().collect::<Vec<_>>();
+        let mut resampler = StreamingResampler::new(16_000.0);
+        let filtered = resampler.process(&input, 48_000.0);
+        let naive_rms = rms(&naive[RESAMPLER_FILTER_TAPS..]);
+        let filtered_rms = rms(&filtered[RESAMPLER_FILTER_TAPS..]);
+        assert!(
+            filtered_rms < naive_rms * 0.02,
+            "12 kHz RMS was {filtered_rms}, versus naive decimation RMS {naive_rms}"
+        );
+    }
+
+    #[test]
+    fn callback_boundaries_do_not_change_resampled_audio() {
+        let low = tone(1_000.0, 48_000.0, 48_000);
+        let high = tone(12_000.0, 48_000.0, 48_000);
+        let input = low
+            .iter()
+            .zip(high.iter())
+            .map(|(low, high)| low * 0.8 + high * 0.2)
+            .collect::<Vec<_>>();
+
+        let mut whole_resampler = StreamingResampler::new(16_000.0);
+        let whole = whole_resampler.process(&input, 48_000.0);
+
+        let callback_sizes = [1, 17, 480, 113, 2_047, 7, 4_096];
+        let mut split_resampler = StreamingResampler::new(16_000.0);
+        let mut split = Vec::new();
+        let mut start = 0;
+        let mut callback_index = 0;
+        while start < input.len() {
+            let end =
+                (start + callback_sizes[callback_index % callback_sizes.len()]).min(input.len());
+            split.extend(split_resampler.process(&input[start..end], 48_000.0));
+            start = end;
+            callback_index += 1;
+        }
+
+        assert_eq!(split, whole);
+    }
+
+    #[test]
+    fn preserves_samples_at_the_target_rate_and_resets_after_rate_changes() {
+        let direct = vec![-0.75, -0.25, 0.0, 0.25, 0.75];
+        let mut resampler = StreamingResampler::new(16_000.0);
+        let _ = resampler.process(&tone(1_000.0, 48_000.0, 480), 48_000.0);
+        assert_eq!(resampler.process(&direct, 16_000.0), direct);
+
+        let silence = vec![0.0; 480];
+        let after_rate_change = resampler.process(&silence, 48_000.0);
+        let mut fresh = StreamingResampler::new(16_000.0);
+        assert_eq!(after_rate_change, fresh.process(&silence, 48_000.0));
     }
 
     #[test]
@@ -207,8 +431,23 @@ mod tests {
 
     #[test]
     fn mixer_keeps_samples_bounded() {
-        let mixed = mix_audio(&vec![1.0; 100], &vec![1.0; 100], 100, false);
+        let mixed = mix_audio(&vec![1.0; 100], &vec![1.0; 100], 100, false, false);
         assert!(mixed.iter().all(|sample| sample.abs() <= 1.0));
+    }
+
+    #[test]
+    fn system_only_mixer_is_transparent_and_bounded() {
+        let system = [-1.5, -0.5, 0.0, 0.5, 1.5];
+        let mixed = mix_audio(&system, &[], system.len(), false, true);
+        assert_eq!(mixed, vec![-1.0, -0.5, 0.0, 0.5, 1.0]);
+    }
+
+    #[test]
+    fn combined_mixer_keeps_source_specific_weights() {
+        let system = [0.5];
+        let microphone = [0.25];
+        let mixed = mix_audio(&system, &microphone, 1, false, false);
+        assert!((mixed[0] - (0.5_f32 * 0.65 + 0.25 * 0.82).tanh()).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -216,7 +455,7 @@ mod tests {
         let mut timeline = TimestampMixer::default();
         timeline.push(AudioSource::Microphone, 10.0, &vec![0.5; 16_000]);
         timeline.push(AudioSource::System, 10.5, &vec![0.25; 8_000]);
-        let mixed = timeline.take(16_000, false);
+        let mixed = timeline.take(16_000, false, false);
         assert!((mixed[1_000] - (0.5_f32 * 0.82).tanh()).abs() < 0.001);
         assert!((mixed[12_000] - (0.25_f32 * 0.65 + 0.5 * 0.82).tanh()).abs() < 0.001);
     }
@@ -226,7 +465,7 @@ mod tests {
         let mut timeline = TimestampMixer::default();
         timeline.push(AudioSource::Microphone, 10.1, &vec![0.5; 1_600]);
         timeline.push(AudioSource::System, 10.0, &vec![0.25; 3_200]);
-        let mixed = timeline.take(3_200, false);
+        let mixed = timeline.take(3_200, false, false);
         assert!((mixed[800] - (0.25_f32 * 0.65).tanh()).abs() < 0.001);
         assert!((mixed[2_000] - (0.25_f32 * 0.65 + 0.5 * 0.82).tanh()).abs() < 0.001);
     }
@@ -262,8 +501,10 @@ mod tests {
         timeline.push(AudioSource::System, 10.0, &vec![0.25; AUDIO_FRAME_SAMPLES]);
         assert_eq!(timeline.system_available(), AUDIO_FRAME_SAMPLES);
         assert_eq!(timeline.microphone_available(), 0);
-        let mixed = timeline.take(AUDIO_FRAME_SAMPLES, false);
-        assert!(mixed.iter().all(|sample| *sample > 0.0));
+        let mixed = timeline.take(AUDIO_FRAME_SAMPLES, false, true);
+        assert!(mixed
+            .iter()
+            .all(|sample| (*sample - 0.25).abs() < f32::EPSILON));
     }
 
     #[test]

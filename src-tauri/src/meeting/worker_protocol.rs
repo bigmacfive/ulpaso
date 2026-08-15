@@ -2,7 +2,9 @@
 //!
 //! The queue carries only file offsets, so a stalled or restarting model does
 //! not make live audio accumulate in memory. A new worker generation is fed
-//! from byte zero before live delivery resumes.
+//! from byte zero before live delivery resumes. Finish remains pending until
+//! the controller acknowledges a final event, so a hard crash during speaker
+//! cleanup replays the same disk spool and finish frame to the recovery worker.
 
 use std::{
     fs::File,
@@ -74,6 +76,7 @@ pub(crate) fn worker_feeder_loop(
     stdin: WorkerInput,
     generation: Arc<AtomicU64>,
     shutdown: Arc<AtomicBool>,
+    final_received: Arc<AtomicBool>,
     pcm_path: PathBuf,
     queue: Receiver<WorkerQueueMessage>,
 ) -> Result<(), String> {
@@ -107,10 +110,18 @@ pub(crate) fn worker_feeder_loop(
                     continue;
                 }
                 match write_worker_frame(&stdin, 2, &[]) {
-                    Ok(()) => return Ok(()),
+                    Ok(()) => wait_for_final_or_worker_generation(
+                        &generation,
+                        &shutdown,
+                        &final_received,
+                        active_generation,
+                    )?,
                     Err(_) => {
                         wait_for_worker_generation(&generation, &shutdown, active_generation)?
                     }
+                }
+                if final_received.load(Ordering::Acquire) {
+                    return Ok(());
                 }
             },
             WorkerQueueMessage::Cancel => {
@@ -122,6 +133,23 @@ pub(crate) fn worker_feeder_loop(
     Err("The transcription input queue is closed".into())
 }
 
+fn wait_for_final_or_worker_generation(
+    generation: &AtomicU64,
+    shutdown: &AtomicBool,
+    final_received: &AtomicBool,
+    sent_generation: u64,
+) -> Result<(), String> {
+    while !final_received.load(Ordering::Acquire)
+        && generation.load(Ordering::Acquire) == sent_generation
+    {
+        if shutdown.load(Ordering::Acquire) {
+            return Err("Transcription input was canceled".into());
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    Ok(())
+}
+
 fn sync_worker_spool(
     stdin: &WorkerInput,
     generation: &AtomicU64,
@@ -131,7 +159,7 @@ fn sync_worker_spool(
     replayed_until: &mut u64,
     end_offset: u64,
 ) -> Result<(), String> {
-    while *replayed_until < end_offset {
+    loop {
         if shutdown.load(Ordering::Acquire) {
             return Err("Transcription input was canceled".into());
         }
@@ -152,6 +180,9 @@ fn sync_worker_spool(
                 current_generation,
             );
         }
+        if *replayed_until >= end_offset {
+            return Ok(());
+        }
 
         let remaining = (end_offset - *replayed_until) as usize;
         let size = remaining.min(WORKER_PCM_CHUNK_BYTES);
@@ -165,7 +196,6 @@ fn sync_worker_spool(
             Err(_) => wait_for_worker_generation(generation, shutdown, *active_generation)?,
         }
     }
-    Ok(())
 }
 
 fn wait_for_worker_generation(
@@ -193,11 +223,73 @@ pub(crate) fn f32_bytes(samples: &[f32]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
     use std::{
-        process::{Command, Stdio},
+        io::{BufRead, BufReader},
+        process::{Child, ChildStdin, Command, ExitStatus, Stdio},
         sync::mpsc,
+        time::Instant,
     };
     use uuid::Uuid;
+
+    fn spawn_mock_worker(recovery: bool) -> (Child, ChildStdin, Receiver<Value>) {
+        let worker = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/asr/asr_worker.py");
+        let mut child = Command::new("/usr/bin/python3")
+            .arg("-u")
+            .arg(worker)
+            .arg("--model-dir")
+            .arg(std::env::temp_dir())
+            .arg("--audio-path")
+            .arg(std::env::temp_dir().join("ulpaso-worker-protocol-mock.wav"))
+            .arg("--session-id")
+            .arg("worker-protocol-recovery")
+            .arg("--mock")
+            .env("ULPASO_ASR_CRASH_ON_FINISH", "1")
+            .env("ULPASO_ASR_RECOVERY", if recovery { "1" } else { "0" })
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("spawn mock ASR worker");
+        let stdin = child.stdin.take().expect("mock worker stdin");
+        let stdout = child.stdout.take().expect("mock worker stdout");
+        let (event_tx, event_rx) = mpsc::channel();
+        thread::spawn(move || {
+            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                if let Ok(value) = serde_json::from_str(&line) {
+                    let _ = event_tx.send(value);
+                }
+            }
+        });
+        (child, stdin, event_rx)
+    }
+
+    fn wait_for_event(events: &Receiver<Value>, expected: &str) -> Value {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            let value = events
+                .recv_timeout(remaining)
+                .unwrap_or_else(|_| panic!("mock worker did not emit {expected}"));
+            if value.get("type").and_then(Value::as_str) == Some(expected) {
+                return value;
+            }
+        }
+    }
+
+    fn wait_for_exit(child: &mut Child) -> ExitStatus {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            if let Some(status) = child.try_wait().expect("poll mock worker") {
+                return status;
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                panic!("mock worker did not exit");
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+    }
 
     #[test]
     fn encodes_worker_pcm_as_little_endian_floats() {
@@ -223,6 +315,7 @@ mod tests {
         let mut stdout = child.stdout.take().expect("capture protocol output");
         let generation = Arc::new(AtomicU64::new(1));
         let shutdown = Arc::new(AtomicBool::new(false));
+        let final_received = Arc::new(AtomicBool::new(true));
         let (queue_tx, queue_rx) = mpsc::channel();
         let feeder_stdin = stdin.clone();
         let feeder_generation = generation.clone();
@@ -233,6 +326,7 @@ mod tests {
                 feeder_stdin,
                 feeder_generation,
                 feeder_shutdown,
+                final_received,
                 feeder_path,
                 queue_rx,
             )
@@ -280,5 +374,67 @@ mod tests {
     #[test]
     fn worker_queue_retains_offsets_instead_of_audio_payloads() {
         assert!(std::mem::size_of::<WorkerQueueMessage>() <= 24);
+    }
+
+    #[test]
+    fn finish_crash_replays_full_spool_and_finish_to_recovery_worker() {
+        let path =
+            std::env::temp_dir().join(format!("ulpaso-finish-recovery-{}.pcm", Uuid::new_v4()));
+        let payload = vec![0u8; WORKER_PCM_CHUNK_BYTES + 257];
+        std::fs::write(&path, &payload).expect("write recovery PCM spool");
+
+        let (mut first_worker, first_stdin, first_events) = spawn_mock_worker(false);
+        wait_for_event(&first_events, "ready");
+        let stdin = Arc::new(Mutex::new(Some(first_stdin)));
+        let generation = Arc::new(AtomicU64::new(1));
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let final_received = Arc::new(AtomicBool::new(false));
+        let (queue_tx, queue_rx) = mpsc::channel();
+        let feeder_stdin = stdin.clone();
+        let feeder_generation = generation.clone();
+        let feeder_shutdown = shutdown.clone();
+        let feeder_final_received = final_received.clone();
+        let feeder_path = path.clone();
+        let feeder = thread::spawn(move || {
+            worker_feeder_loop(
+                feeder_stdin,
+                feeder_generation,
+                feeder_shutdown,
+                feeder_final_received,
+                feeder_path,
+                queue_rx,
+            )
+        });
+        queue_tx
+            .send(WorkerQueueMessage::Finish {
+                end_offset: payload.len() as u64,
+            })
+            .expect("queue finish");
+
+        let first_status = wait_for_exit(&mut first_worker);
+        assert_eq!(first_status.code(), Some(92));
+        *stdin.lock().expect("clear failed worker stdin") = None;
+
+        let (mut recovery_worker, recovery_stdin, recovery_events) = spawn_mock_worker(true);
+        wait_for_event(&recovery_events, "ready");
+        *stdin.lock().expect("install recovery worker stdin") = Some(recovery_stdin);
+        generation.store(2, Ordering::Release);
+
+        let final_event = wait_for_event(&recovery_events, "final");
+        final_received.store(true, Ordering::Release);
+        feeder.join().expect("join feeder").expect("recover finish");
+        assert_eq!(
+            final_event.get("text").and_then(Value::as_str),
+            Some("미팅 노트 전사를 시작했습니다. 지금 들리는 내용이 문서에 바로 기록됩니다.")
+        );
+        assert_eq!(
+            final_event
+                .get("segments")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(2)
+        );
+        assert!(wait_for_exit(&mut recovery_worker).success());
+        let _ = std::fs::remove_file(path);
     }
 }

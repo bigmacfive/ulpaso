@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Ulpaso</h1>
   <p><strong>Meetings stay on your Mac.<br />Notes stay in Markdown.</strong></p>
-  <p>A quiet, local-first Markdown editor with on-device meeting transcription for macOS.</p>
+  <p>A quiet, local Markdown editor with on-device meeting transcription for macOS.</p>
   <p>
     <a href="https://github.com/bigmacfive/ulpaso/actions/workflows/ci.yml"><img src="https://github.com/bigmacfive/ulpaso/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status" /></a>
     <a href="https://github.com/bigmacfive/ulpaso/releases/latest"><img src="https://img.shields.io/github/v/release/bigmacfive/ulpaso?display_name=tag&amp;sort=semver&amp;style=flat-square&amp;color=111111" alt="Latest release" /></a>
@@ -50,7 +50,7 @@ The editor supports GFM tables, task lists, links, images, blockquotes, lists, a
 
 Document contents, meeting audio, and transcripts are processed locally and are not sent to Ulpaso servers. Documents remain files you choose on your Mac. There is no account, cloud workspace, proprietary document format, or telemetry pipeline.
 
-- Meeting setup downloads approximately 1.3 GB of pinned speech and speaker models from Hugging Face. Later transcription runs from those local files.
+- Meeting setup downloads approximately 1.8 GB in total: a 500 MB local runtime plus 1.3 GB of pinned speech and speaker models from Hugging Face. Later transcription runs from those local files.
 - Temporary recordings are removed after successful completion or cancellation. Recovery audio is retained only when an unexpected stop could otherwise lose the session.
 - Meeting detection can suggest starting notes, but recording begins only after you explicitly choose **Start recording**.
 - GitHub is contacted for release and update metadata; Hugging Face is contacted for the disclosed model download.
@@ -106,7 +106,7 @@ pnpm tauri:build:unsigned
 
 Runtime and model downloads are intentionally excluded from Git.
 
-### Verify a checkout
+### Verify the source tree
 
 ```sh
 pnpm check
@@ -180,7 +180,7 @@ Ulpaso source code is available under the [MIT License](LICENSE). Bundled fonts,
 <details>
 <summary><strong>한국어</strong></summary>
 
-Ulpaso는 일반 Markdown 파일을 직접 편집하고 회의 음성을 기기 안에서 전사하는 macOS용 로컬 우선 에디터입니다. Apple Silicon과 macOS 15 이상을 지원하며, 계정·구독·클라우드 문서 형식·텔레메트리 없이 사용할 수 있습니다. 회의 전사 설정 시에는 약 1.3 GB의 고정된 음성·화자 모델을 내려받습니다.
+Ulpaso는 일반 Markdown 파일을 직접 편집하고 회의 음성을 기기 안에서 전사하는 macOS용 로컬 에디터입니다. Apple Silicon과 macOS 15 이상을 지원하며, 계정·결제·구독·클라우드 문서 형식·텔레메트리 없이 사용할 수 있습니다. 회의 전사 설정 시에는 약 500 MB의 로컬 런타임과 1.3 GB의 고정된 음성·화자 모델을 내려받습니다.
 
 [Mac용 다운로드](https://ulpaso.app/download) · [웹사이트](https://ulpaso.app/) · [개인정보 처리 방식](docs/PRIVACY.md)
 

@@ -31,6 +31,8 @@ import {
 } from "./meeting_transcript_plugin";
 import {
   createMeetingDocumentNodes,
+  preserveSpeakerBoundaries,
+  reconcileMeetingTranscriptSegments,
   type MeetingTranscriptSegment,
 } from "./meeting_document";
 
@@ -47,6 +49,7 @@ const SLASH_TRIGGER_PATTERN = /^(\s*)\/([^\s]*)$/;
 const SLASH_MENU_WIDTH = 320;
 const SLASH_MENU_MAX_HEIGHT = 400;
 const EDITOR_TAB_SIZE = 4;
+const MEETING_TAIL_THRESHOLD = 96;
 
 function isStructuralTabTargetNodeName(nodeName: string): boolean {
   return nodeName === "list" || nodeName === "tableCell" || nodeName === "tableHeaderCell";
@@ -96,6 +99,9 @@ export default function KukuEditor(props: KukuEditorProps) {
   let containerRef!: HTMLDivElement;
   let viewportRef!: HTMLDivElement;
   let activeMeeting: ActiveMeetingDocument | null = null;
+  let editorHintDismissed = Boolean(props.initialMarkdown.trim());
+  let followMeetingTail = true;
+  let meetingTailFrame: number | null = null;
   const [activeSlashMenu, setActiveSlashMenu] = createSignal<ResolvedSlashMenu | null>(null);
   const [slashMenuSelectedIndex, setSlashMenuSelectedIndex] = createSignal(0);
 
@@ -104,8 +110,39 @@ export default function KukuEditor(props: KukuEditorProps) {
     const root = editor.view.dom;
     const { doc } = editor.view.state;
     const onlyBlock = doc.childCount === 1 ? doc.firstChild : null;
-    const isEmpty = Boolean(onlyBlock?.isTextblock && onlyBlock.content.size === 0);
+    const isEmpty = Boolean(
+      !editorHintDismissed
+      && onlyBlock?.type.name === "paragraph"
+      && onlyBlock.content.size === 0,
+    );
     root.dataset.empty = String(isEmpty);
+  }
+
+  function dismissEditorHint(): void {
+    if (editorHintDismissed) return;
+    editorHintDismissed = true;
+    syncEditorSurfaceState();
+  }
+
+  function isNearMeetingTail(): boolean {
+    if (!viewportRef) return true;
+    return viewportRef.scrollHeight - viewportRef.scrollTop - viewportRef.clientHeight
+      <= MEETING_TAIL_THRESHOLD;
+  }
+
+  function scheduleMeetingTailScroll(force = false): void {
+    if (!viewportRef || (!force && !followMeetingTail)) return;
+    if (meetingTailFrame != null) cancelAnimationFrame(meetingTailFrame);
+    meetingTailFrame = requestAnimationFrame(() => {
+      meetingTailFrame = null;
+      if (!viewportRef || (!force && !followMeetingTail)) return;
+      viewportRef.scrollTop = viewportRef.scrollHeight;
+    });
+  }
+
+  function handleMeetingViewportScroll(): void {
+    if (!activeMeeting) return;
+    followMeetingTail = isNearMeetingTail();
   }
 
   function resolveSlashMenu(): ResolvedSlashMenu | null {
@@ -198,6 +235,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       revealId: revealLatest ? (plugin.revealId ?? 0) + 1 : plugin.revealId,
     });
     editor.view.dispatch(transaction);
+    scheduleMeetingTailScroll();
   }
 
   function updateMeetingPartial(sessionId: string, partial: string) {
@@ -207,6 +245,7 @@ export default function KukuEditor(props: KukuEditorProps) {
     transaction.setMeta("addToHistory", false);
     setMeetingPluginState(transaction, { ...plugin, partial });
     editor.view.dispatch(transaction);
+    scheduleMeetingTailScroll();
   }
 
   function appendMeetingText(sessionId: string, text: string, partial: string): boolean {
@@ -224,6 +263,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       revealId: (plugin.revealId ?? 0) + 1,
     });
     editor.view.dispatch(transaction);
+    scheduleMeetingTailScroll();
     return true;
   }
 
@@ -258,6 +298,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       revealId: (plugin.revealId ?? 0) + 1,
     });
     editor.view.dispatch(transaction);
+    scheduleMeetingTailScroll();
     return true;
   }
 
@@ -286,6 +327,7 @@ export default function KukuEditor(props: KukuEditorProps) {
   function applySlashItem(item: EditorSlashItem) {
     const menu = activeSlashMenu();
     if (!menu || isSlashItemDisabled(item)) return;
+    dismissEditorHint();
     editor.view.dispatch(editor.view.state.tr.delete(menu.from, menu.to));
     closeSlashMenu();
     requestAnimationFrame(() => {
@@ -355,6 +397,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       const command = (editor.commands as Record<string, EditorCommand | undefined>)[name];
       if (!command) return false;
       if (command.canExec && !command.canExec(attrs)) return false;
+      dismissEditorHint();
       command(attrs);
       editor.view.focus();
       return true;
@@ -368,6 +411,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       const service = getMarkdownService();
       const parsed = service?.parse(markdown);
       if (!parsed) return;
+      editorHintDismissed = Boolean(markdown.trim());
       ignoredProgrammaticMarkdown = service?.stringify(parsed) ?? null;
       settingContent = true;
       try { editor.setContent(parsed, "start"); }
@@ -376,18 +420,21 @@ export default function KukuEditor(props: KukuEditorProps) {
     },
     beginMeeting(sessionId, title) {
       if (activeMeeting?.id === sessionId) return;
+      dismissEditorHint();
       const { state } = editor.view;
       const { $from } = state.selection;
       const topLevel = $from.depth >= 1 ? $from.node(1) : null;
       const from = topLevel && !topLevel.textContent.trim() ? $from.before(1) : $from.depth >= 1 ? $from.after(1) : state.selection.to;
       const to = topLevel && !topLevel.textContent.trim() ? from + topLevel.nodeSize : from;
       activeMeeting = { id: sessionId, title, lastStableText: "", segments: [] };
+      followMeetingTail = true;
       const nodes = meetingNodes(title, []);
       const fragment = Fragment.fromArray(nodes);
       const transaction = state.tr.replaceWith(from, to, fragment);
       transaction.setMeta("addToHistory", false);
       setMeetingPluginState(transaction, { sessionId, from, to: from + fragment.size, partial: t("editor.listening") });
       editor.view.dispatch(transaction.scrollIntoView());
+      scheduleMeetingTailScroll(true);
     },
     updateMeeting(sessionId, stableText, unstableText, speakerId) {
       const meeting = activeMeeting;
@@ -401,7 +448,7 @@ export default function KukuEditor(props: KukuEditorProps) {
           const delta = stableText.slice(meeting.lastStableText.length).trim();
           if (delta) {
             const previous = meeting.segments.at(-1);
-            const normalizedSpeaker = speakerId || previous?.speaker || null;
+            const normalizedSpeaker = speakerId ?? previous?.speaker ?? null;
             if (previous && previous.speaker === normalizedSpeaker) {
               const separator = previous.text ? " " : "";
               previous.text = `${previous.text}${separator}${delta}`;
@@ -415,7 +462,11 @@ export default function KukuEditor(props: KukuEditorProps) {
             }
           }
         } else {
-          meeting.segments = stableText.trim() ? [{ speaker: speakerId ?? null, text: stableText.trim() }] : [];
+          meeting.segments = reconcileMeetingTranscriptSegments(
+            meeting.segments,
+            stableText,
+            speakerId,
+          );
           needsFullReplacement = true;
         }
         meeting.lastStableText = stableText;
@@ -430,9 +481,13 @@ export default function KukuEditor(props: KukuEditorProps) {
       const meeting = activeMeeting;
       if (!meeting || meeting.id !== sessionId) return;
       const cleaned = segments.filter((segment) => segment.text.trim());
+      const finalSegments = preserveSpeakerBoundaries(
+        meeting.segments,
+        cleaned.length ? cleaned : meeting.segments,
+      );
       // Final speaker cleanup is still a machine-authored transcript update.
       // Keep the whole replacement atomic without adding it to user undo history.
-      replaceMeetingContent(meeting, cleaned.length ? cleaned : meeting.segments, "", false);
+      replaceMeetingContent(meeting, finalSegments, "", false);
       const plugin = getMeetingPluginState(editor.view.state);
       if (plugin?.sessionId === sessionId) {
         const transaction = editor.view.state.tr;
@@ -465,14 +520,18 @@ export default function KukuEditor(props: KukuEditorProps) {
     const handleSelectionChange = () => requestAnimationFrame(() => {
       if (editor.mounted) refreshSlashMenu();
     });
-    const handleEditorInput = () => requestAnimationFrame(() => {
-      if (editor.mounted) refreshSlashMenu();
-    });
+    const handleEditorInput = () => {
+      dismissEditorHint();
+      requestAnimationFrame(() => {
+        if (editor.mounted) refreshSlashMenu();
+      });
+    };
     document.addEventListener("selectionchange", handleSelectionChange);
     editorDom.addEventListener("input", handleEditorInput);
     onCleanup(() => document.removeEventListener("selectionchange", handleSelectionChange));
     onCleanup(() => editorDom.removeEventListener("input", handleEditorInput));
     onCleanup(() => {
+      if (meetingTailFrame != null) cancelAnimationFrame(meetingTailFrame);
       if (editor.mounted) editor.unmount();
     });
     requestAnimationFrame(() => {
@@ -495,6 +554,7 @@ export default function KukuEditor(props: KukuEditorProps) {
       return;
     }
     ignoredProgrammaticMarkdown = null;
+    editorHintDismissed = true;
     syncEditorSurfaceState();
     props.onChange(markdown, editor.view.dom);
     requestAnimationFrame(() => {
@@ -537,7 +597,12 @@ export default function KukuEditor(props: KukuEditorProps) {
           requestAnimationFrame(refreshSlashMenu);
         }}
       >
-        <div ref={viewportRef} class="kuku-editor-scroll" data-scroll-area-viewport="">
+        <div
+          ref={viewportRef}
+          class="kuku-editor-scroll"
+          data-scroll-area-viewport=""
+          onScroll={handleMeetingViewportScroll}
+        >
           <div class="kuku-editor-host" ref={editor.mount} />
         </div>
         <Show when={activeSlashMenu()}>{(menu) =>

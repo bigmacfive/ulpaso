@@ -348,7 +348,11 @@ def main() -> None:
     offline_transcriber = None
     if args.sanitize_scripts or args.offline_final:
         sys.path.insert(0, str(args.worker_dir.resolve()))
-        from asr_worker import sanitize_stream_text, transcribe_audio_adaptive, transcribe_audio_windowed
+        from asr_worker import (
+            sanitize_stream_text,
+            transcribe_audio_adaptive,
+            transcribe_audio_windowed,
+        )
 
         sanitizer = sanitize_stream_text if args.sanitize_scripts else None
         if args.offline_final:

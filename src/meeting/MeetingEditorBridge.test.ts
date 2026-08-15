@@ -74,6 +74,60 @@ describe("MeetingEditorBridge", () => {
     expect(completed).toEqual([final]);
   });
 
+  it("uses the canonical final text when speaker segments are empty", () => {
+    const bridge = new MeetingEditorBridge(() => "미팅 노트");
+    const editor = fakeEditor();
+    bridge.attach(editor);
+
+    bridge.pushTranscript({
+      ...update(),
+      kind: "final",
+      stableText: "누락되면 안 되는 최종 문장",
+      unstableText: "",
+      segments: [],
+    });
+
+    expect(editor.finalizeMeeting).toHaveBeenCalledWith("session-1", [
+      { speaker: null, text: "누락되면 안 되는 최종 문장" },
+    ]);
+  });
+
+  it("uses the canonical final text when speaker cleanup drops content", () => {
+    const bridge = new MeetingEditorBridge(() => "미팅 노트");
+    const editor = fakeEditor();
+    bridge.attach(editor);
+
+    bridge.pushTranscript({
+      ...update(),
+      kind: "final",
+      stableText: "첫 문장 둘째 문장 셋째 문장 넷째 문장",
+      unstableText: "",
+      segments: [{ speaker: 1, text: "첫 문장" }],
+    });
+
+    expect(editor.finalizeMeeting).toHaveBeenCalledWith("session-1", [
+      { speaker: null, text: "첫 문장 둘째 문장 셋째 문장 넷째 문장" },
+    ]);
+  });
+
+  it("uses the canonical final text when speaker cleanup inserts content", () => {
+    const bridge = new MeetingEditorBridge(() => "미팅 노트");
+    const editor = fakeEditor();
+    bridge.attach(editor);
+
+    bridge.pushTranscript({
+      ...update(),
+      kind: "final",
+      stableText: "첫 문장 둘째 문장",
+      unstableText: "",
+      segments: [{ speaker: 1, text: "첫 문장 잘못 추가된 문장 둘째 문장" }],
+    });
+
+    expect(editor.finalizeMeeting).toHaveBeenCalledWith("session-1", [
+      { speaker: null, text: "첫 문장 둘째 문장" },
+    ]);
+  });
+
   it("keeps a recovered worker update in the same active document region", () => {
     const bridge = new MeetingEditorBridge(() => "미팅 노트");
     const editor = fakeEditor();

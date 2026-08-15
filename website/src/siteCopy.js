@@ -94,7 +94,7 @@ export const SITE_COPY = {
       navAria: "Legal documents",
       nav: ["Operator", "Privacy", "Terms"],
       updated: "Last updated",
-      updatedDate: "August 12, 2026",
+      updatedDate: "August 15, 2026",
       pages: {
         legal: ["OPERATOR & LEGAL", "Operator and legal information", "Who operates Ulpaso, the principles behind it, and the licenses and policies that apply."],
         privacy: ["PRIVACY POLICY", "Privacy policy", "How the Ulpaso app and website handle data and protect your privacy."],
@@ -103,7 +103,7 @@ export const SITE_COPY = {
       overview: {
         operatorTitle: "Operator",
         facts: [["Legal name", "askitmore co., ltd"], ["Brand", "askitmore"], ["Representative", "Minkyu Lee"], ["Service", "Ulpaso"], ["Contact", "support@askitmore.com"], ["Address", "117 Seoulsiripdae-ro, Dongdaemun-gu, Seoul, Republic of Korea"]],
-        operatorBody: "askitmore co., ltd operates the Ulpaso website and distribution information. Ulpaso is a local-first Markdown editor for macOS that does not require an account or cloud storage.",
+        operatorBody: "askitmore co., ltd operates the Ulpaso website and distribution information. Ulpaso is a local Markdown editor for macOS that does not require an account or cloud storage.",
         docsTitle: "Documents",
         cards: [["01", "Privacy policy", "How local files, meeting audio, and website access data are handled"], ["02", "Terms of use", "Software use, recording responsibilities, disclaimers, and governing law"], ["03", "MIT License", "Terms for using, copying, modifying, and distributing the open-source code"], ["04", "Third-party notices", "Licenses for the editor, fonts, models, and dependencies"]],
         openTitle: "Open-source principles",
@@ -175,9 +175,9 @@ export const SITE_COPY = {
 
 SITE_COPY.ko.legal = {
   ...SITE_COPY.en.legal,
-  back: "소개 페이지", navAria: "법률 문서", nav: ["운영 안내", "개인정보 처리방침", "이용약관"], updated: "최종 업데이트", updatedDate: "2026년 8월 12일",
+  back: "소개 페이지", navAria: "법률 문서", nav: ["운영 안내", "개인정보 처리방침", "이용약관"], updated: "최종 업데이트", updatedDate: "2026년 8월 15일",
   pages: { legal: ["OPERATOR & LEGAL", "운영 및 법률 안내", "Ulpaso를 누가 운영하고, 어떤 원칙과 라이선스로 제공하는지 한곳에 정리했습니다."], privacy: ["PRIVACY POLICY", "개인정보 처리방침", "Ulpaso 앱과 소개 웹사이트에서 데이터가 어떻게 처리되는지 설명합니다."], terms: ["TERMS OF USE", "이용약관", "Ulpaso 소프트웨어와 소개 웹사이트를 이용할 때 적용되는 기본 조건입니다."] },
-  overview: { operatorTitle: "운영 주체", facts: [["법인명", "askitmore co., ltd"], ["브랜드", "askitmore"], ["대표", "Minkyu Lee"], ["서비스", "Ulpaso"], ["문의", "support@askitmore.com"], ["주소", "서울특별시 동대문구 서울시립대로 117"]], operatorBody: "askitmore co., ltd는 Ulpaso 소개 웹사이트와 배포 안내를 운영합니다. Ulpaso는 계정과 클라우드 저장을 요구하지 않는 macOS용 로컬 우선 Markdown 편집기입니다.", docsTitle: "문서 바로가기", cards: [["01", "개인정보 처리방침", "로컬 파일, 회의 오디오, 웹사이트 접속 정보의 처리 방식"], ["02", "이용약관", "소프트웨어 이용, 녹음 책임, 면책과 준거법"], ["03", "MIT 라이선스", "오픈소스 코드의 이용·복제·수정·배포 조건"], ["04", "제3자 고지", "편집기, 글꼴, 모델과 의존성의 개별 라이선스"]], openTitle: "오픈소스 원칙", openBody: "Ulpaso의 소스 코드는 MIT 라이선스로 공개됩니다. 저장소에서 구현을 검토하고, 이슈를 남기거나, 변경을 제안할 수 있습니다. 함께 배포되는 제3자 소프트웨어·모델·글꼴에는 각각의 원 저작자 라이선스가 적용됩니다.", repo: "GitHub 저장소", fontTitle: "글꼴 이용 안내", fontBody: "본문에는 구름이 제공하는 Goorm Sans를 사용합니다. 짧은 손글씨 표현에는 GS칼텍스 독립서체 캠페인의 한용운체를 사용하며, 출처 표기 권고에 따라 제작자를 함께 밝힙니다.", fontLink: "한용운체 이용 범위 확인" },
+  overview: { operatorTitle: "운영 주체", facts: [["법인명", "askitmore co., ltd"], ["브랜드", "askitmore"], ["대표", "Minkyu Lee"], ["서비스", "Ulpaso"], ["문의", "support@askitmore.com"], ["주소", "서울특별시 동대문구 서울시립대로 117"]], operatorBody: "askitmore co., ltd는 Ulpaso 소개 웹사이트와 배포 안내를 운영합니다. Ulpaso는 계정과 클라우드 저장을 요구하지 않는 macOS용 로컬 Markdown 편집기입니다.", docsTitle: "문서 바로가기", cards: [["01", "개인정보 처리방침", "로컬 파일, 회의 오디오, 웹사이트 접속 정보의 처리 방식"], ["02", "이용약관", "소프트웨어 이용, 녹음 책임, 면책과 준거법"], ["03", "MIT 라이선스", "오픈소스 코드의 이용·복제·수정·배포 조건"], ["04", "제3자 고지", "편집기, 글꼴, 모델과 의존성의 개별 라이선스"]], openTitle: "오픈소스 원칙", openBody: "Ulpaso의 소스 코드는 MIT 라이선스로 공개됩니다. 저장소에서 구현을 검토하고, 이슈를 남기거나, 변경을 제안할 수 있습니다. 함께 배포되는 제3자 소프트웨어·모델·글꼴에는 각각의 원 저작자 라이선스가 적용됩니다.", repo: "GitHub 저장소", fontTitle: "글꼴 이용 안내", fontBody: "본문에는 구름이 제공하는 Goorm Sans를 사용합니다. 짧은 손글씨 표현에는 GS칼텍스 독립서체 캠페인의 한용운체를 사용하며, 출처 표기 권고에 따라 제작자를 함께 밝힙니다.", fontLink: "한용운체 이용 범위 확인" },
   privacySections: [
     { title: "1. 적용 범위와 운영자", paragraphs: ["이 방침은 askitmore co., ltd가 운영하는 Ulpaso 소개 웹사이트와 Ulpaso macOS 애플리케이션에 적용됩니다. 개인정보 관련 문의는 support@askitmore.com으로 보내실 수 있습니다."] },
     { highlight: "당신의 노트는 당신의 Mac에 남습니다.", title: "2. 앱에서 수집하지 않는 정보", paragraphs: ["Ulpaso는 회원 계정, 광고, 사용 분석, 행동 프로파일링 또는 앱 원격 측정 기능을 운영하지 않습니다. 사용자가 연 Markdown 문서의 내용, 회의 오디오와 전사 결과는 askitmore co., ltd가 운영하는 서버로 전송되지 않습니다."] },
@@ -202,9 +202,9 @@ SITE_COPY.ko.legal = {
 
 SITE_COPY.ja.legal = {
   ...SITE_COPY.en.legal,
-  back: "紹介ページ", navAria: "法務文書", nav: ["運営情報", "プライバシー", "利用規約"], updated: "最終更新", updatedDate: "2026年8月12日",
+  back: "紹介ページ", navAria: "法務文書", nav: ["運営情報", "プライバシー", "利用規約"], updated: "最終更新", updatedDate: "2026年8月15日",
   pages: { legal: ["OPERATOR & LEGAL", "運営・法務情報", "Ulpasoの運営者、提供方針、適用されるライセンスとポリシーをご案内します。"], privacy: ["PRIVACY POLICY", "プライバシーポリシー", "Ulpasoアプリとウェブサイトにおけるデータの取り扱いを説明します。"], terms: ["TERMS OF USE", "利用規約", "Ulpasoソフトウェアとウェブサイトを利用する際の基本条件です。"] },
-  overview: { operatorTitle: "運営者", facts: [["法人名", "askitmore co., ltd"], ["ブランド", "askitmore"], ["代表", "Minkyu Lee"], ["サービス", "Ulpaso"], ["お問い合わせ", "support@askitmore.com"], ["住所", "大韓民国 ソウル特別市 東大門区 ソウル市立大路117"]], operatorBody: "askitmore co., ltdはUlpasoの紹介サイトと配布情報を運営しています。Ulpasoはアカウントやクラウド保存を必要としない、macOS向けのローカルファーストMarkdownエディターです。", docsTitle: "文書一覧", cards: [["01", "プライバシーポリシー", "ローカルファイル、会議音声、ウェブサイトアクセス情報の取り扱い"], ["02", "利用規約", "ソフトウェア利用、録音の責任、免責、準拠法"], ["03", "MITライセンス", "オープンソースコードの利用・複製・変更・配布条件"], ["04", "第三者通知", "エディター、フォント、モデル、依存関係の各ライセンス"]], openTitle: "オープンソースの原則", openBody: "UlpasoのソースコードはMITライセンスで公開されています。リポジトリで実装を確認し、Issueや変更提案を送れます。同梱する第三者ソフトウェア、モデル、フォントには、それぞれの作者のライセンスが適用されます。", repo: "GitHubリポジトリ", fontTitle: "フォントライセンス", fontBody: "本文にはgoorm提供のGoorm Sansを使用します。短い手書き表現にはGS Caltex独立書体キャンペーンのHanYongUnを使用し、推奨に従って制作者を表示します。", fontLink: "HanYongUnの利用範囲を確認" },
+  overview: { operatorTitle: "運営者", facts: [["法人名", "askitmore co., ltd"], ["ブランド", "askitmore"], ["代表", "Minkyu Lee"], ["サービス", "Ulpaso"], ["お問い合わせ", "support@askitmore.com"], ["住所", "大韓民国 ソウル特別市 東大門区 ソウル市立大路117"]], operatorBody: "askitmore co., ltdはUlpasoの紹介サイトと配布情報を運営しています。Ulpasoはアカウントやクラウド保存を必要としない、macOS向けのローカルMarkdownエディターです。", docsTitle: "文書一覧", cards: [["01", "プライバシーポリシー", "ローカルファイル、会議音声、ウェブサイトアクセス情報の取り扱い"], ["02", "利用規約", "ソフトウェア利用、録音の責任、免責、準拠法"], ["03", "MITライセンス", "オープンソースコードの利用・複製・変更・配布条件"], ["04", "第三者通知", "エディター、フォント、モデル、依存関係の各ライセンス"]], openTitle: "オープンソースの原則", openBody: "UlpasoのソースコードはMITライセンスで公開されています。リポジトリで実装を確認し、Issueや変更提案を送れます。同梱する第三者ソフトウェア、モデル、フォントには、それぞれの作者のライセンスが適用されます。", repo: "GitHubリポジトリ", fontTitle: "フォントライセンス", fontBody: "本文にはgoorm提供のGoorm Sansを使用します。短い手書き表現にはGS Caltex独立書体キャンペーンのHanYongUnを使用し、推奨に従って制作者を表示します。", fontLink: "HanYongUnの利用範囲を確認" },
   privacySections: [
     { title: "1. 適用範囲と運営者", paragraphs: ["本ポリシーはaskitmore co., ltdが運営するUlpasoウェブサイトとmacOSアプリに適用されます。プライバシーに関するお問い合わせはsupport@askitmore.comへお送りください。"] },
     { highlight: "あなたのノートは、あなたのMacに残ります。", title: "2. アプリが収集しない情報", paragraphs: ["Ulpasoはユーザーアカウント、広告、利用分析、行動プロファイリング、アプリのテレメトリーを運用しません。Markdown文書、会議音声、文字起こしはaskitmore co., ltdのサーバーへ送信されません。"] },

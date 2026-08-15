@@ -6,6 +6,12 @@ interface MeetingDetectionSnapshot {
   detected: boolean;
   appName: string | null;
   bundleId: string | null;
+  windowId: number | null;
+}
+
+interface MeetingCaptureTarget {
+  bundleId: string;
+  windowId: number | null;
 }
 
 interface MeetingDetectionContext {
@@ -36,7 +42,7 @@ class MeetingDetectionPromptCoordinator {
     }
     if (!context.enabled) return "none";
 
-    const detectionKey = snapshot.bundleId || snapshot.appName || "meeting";
+    const detectionKey = `${snapshot.bundleId || snapshot.appName || "meeting"}:${snapshot.windowId ?? "app"}`;
     if (this.handledDetection === detectionKey) return "none";
 
     // Consume detections seen during a manual recording so stopping the
@@ -53,6 +59,7 @@ export {
   readMeetingDetectionPreference,
 };
 export type {
+  MeetingCaptureTarget,
   MeetingDetectionAction,
   MeetingDetectionContext,
   MeetingDetectionSnapshot,

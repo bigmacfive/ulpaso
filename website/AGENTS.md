@@ -22,7 +22,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Use Goorm Sans for primary UI and reading text. HanYongUn may appear only in short handwritten notes or emotional pull quotes; never use it for navigation, legal body text, or dense information.
 - The verified legal operator is `askitmore co., ltd`, while `askitmore` is the brand. Do not display a business registration identifier anywhere on the site. Keep `/legal`, `/privacy`, and `/terms` reachable from the landing footer.
 - The selected landing direction is the headerless “continuous document” concept: begin with the oversized Ulpaso wordmark, not a navigation bar or bird-logo lockup.
-- Keep the landing page structured as numbered editorial chapters: product, local-first principles, transcription before/after, open source, installation, and final CTA.
+- Keep the landing page structured as numbered editorial chapters: product, local on-device principles, transcription before/after, open source, installation, and final CTA.
 - Promote Ulpaso as free and open source in the hero CTA and open-source chapter without introducing pricing-card UI.
 - Scroll motion should be restrained and one-shot: short fade/translate reveals plus a subtle waveform expansion, with reduced-motion support.
 - The terminal panel must use the repository's real pnpm/Tauri development commands and provide a working copy action with visible success feedback.

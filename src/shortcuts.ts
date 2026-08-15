@@ -9,7 +9,6 @@ type AppShortcutAction =
   | "palette"
   | "settings"
   | "sidebar"
-  | "focus"
   | "meeting"
   | "dismiss";
 
@@ -59,7 +58,6 @@ const SHORTCUTS: readonly ShortcutDefinition[] = [
   { id: "palette", group: "view", labelKey: "shortcut.palette", keys: ["⌘", "K"], binding: { key: "k", mod: true }, appAction: "palette" },
   { id: "settings", group: "view", labelKey: "shortcut.settings", keys: ["⌘", ","], binding: { key: ",", mod: true }, appAction: "settings" },
   { id: "sidebar", group: "view", labelKey: "shortcut.sidebar", keys: ["⌘", "\\"], binding: { key: "\\", mod: true }, appAction: "sidebar" },
-  { id: "focus", group: "view", labelKey: "command.focus", keys: ["⌘", "⇧", "F"], binding: { key: "f", mod: true, shift: true }, appAction: "focus" },
   { id: "dismiss", group: "view", labelKey: "shortcut.dismiss", keys: ["Esc"], binding: { key: "Escape" }, appAction: "dismiss" },
 
   { id: "meeting", group: "meeting", labelKey: "shortcut.meeting", keys: ["⌘", "⇧", "M"], binding: { key: "m", mod: true, shift: true }, appAction: "meeting" },

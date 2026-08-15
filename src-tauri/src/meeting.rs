@@ -1,6 +1,6 @@
 use crate::audio_capture::{self, AudioSource, CaptureEvent};
 use audio::{
-    bounded_audio_take, required_microphone_stalled, resample_linear, TimestampMixer,
+    bounded_audio_take, required_microphone_stalled, StreamingResampler, TimestampMixer,
     AUDIO_FRAME_SAMPLES, MAX_MEETING_SAMPLES, SAMPLE_RATE,
 };
 use chrono::Utc;
@@ -35,6 +35,13 @@ mod worker_protocol;
 
 fn diagnostics_enabled() -> bool {
     cfg!(debug_assertions) || std::env::var("ULPASO_ASR_DIAGNOSTICS").ok().as_deref() == Some("1")
+}
+
+fn worker_finish_timeout(pcm_bytes: u64) -> Duration {
+    const BASE_SECONDS: u64 = 120;
+    let bytes_per_second = SAMPLE_RATE as u64 * std::mem::size_of::<f32>() as u64;
+    let audio_seconds = pcm_bytes.saturating_add(bytes_per_second - 1) / bytes_per_second;
+    Duration::from_secs(BASE_SECONDS.saturating_add(audio_seconds / 2))
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -109,11 +116,15 @@ struct ActiveSession {
     worker_stdin: WorkerInput,
     worker_generation: Arc<AtomicU64>,
     worker_shutdown: Arc<AtomicBool>,
+    worker_final_received: Arc<AtomicBool>,
     pending_worker_stdin: Option<ChildStdin>,
     worker_child: Option<Arc<Mutex<Child>>>,
     audio_stop: Option<Sender<AudioLoopCommand>>,
     audio_done: Option<Receiver<()>>,
     worker_restarts: u8,
+    capture_bundle_id: Option<String>,
+    capture_window_id: Option<u32>,
+    capture_sender_generation: Option<u64>,
 }
 
 struct AudioLoopContext {
@@ -122,6 +133,8 @@ struct AudioLoopContext {
     stdin: WorkerInput,
     worker_generation: Arc<AtomicU64>,
     worker_shutdown: Arc<AtomicBool>,
+    worker_final_received: Arc<AtomicBool>,
+    capture_sender_generation: Option<u64>,
     audio_path: PathBuf,
     pcm_path: PathBuf,
     microphone_only: bool,
@@ -179,6 +192,8 @@ impl MeetingController {
         &self,
         microphone_only: bool,
         system_only: bool,
+        capture_bundle_id: Option<String>,
+        capture_window_id: Option<u32>,
     ) -> Result<MeetingStateSnapshot, String> {
         if !audio_capture::is_available() {
             return Err(
@@ -221,6 +236,12 @@ impl MeetingController {
                 microphone_only,
                 system_only,
             };
+            let capture_bundle_id = capture_bundle_id
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
+            let capture_window_id = capture_bundle_id
+                .as_ref()
+                .and(capture_window_id.filter(|value| *value != 0));
             inner.active = Some(ActiveSession {
                 id: session_id,
                 audio_path,
@@ -228,11 +249,15 @@ impl MeetingController {
                 worker_stdin: Arc::new(Mutex::new(None)),
                 worker_generation: Arc::new(AtomicU64::new(0)),
                 worker_shutdown: Arc::new(AtomicBool::new(false)),
+                worker_final_received: Arc::new(AtomicBool::new(false)),
                 pending_worker_stdin: None,
                 worker_child: None,
                 audio_stop: None,
                 audio_done: None,
                 worker_restarts: 0,
+                capture_bundle_id,
+                capture_window_id,
+                capture_sender_generation: None,
             });
         }
         self.emit_state();
@@ -290,7 +315,7 @@ impl MeetingController {
 
     pub fn cancel(&self) -> Result<MeetingStateSnapshot, String> {
         audio_capture::stop();
-        let (stdin, child, stop, done, shutdown, temporary_paths) = {
+        let (stdin, child, stop, done, shutdown, sender_generation, temporary_paths) = {
             let mut inner = self
                 .inner
                 .lock()
@@ -302,12 +327,13 @@ impl MeetingController {
                     active.audio_stop.clone(),
                     active.audio_done.take(),
                     Some(active.worker_shutdown.clone()),
+                    active.capture_sender_generation,
                     Some((active.audio_path.clone(), active.pcm_path.clone())),
                 )
             });
             inner.state = MeetingStateSnapshot::default();
             inner.active = None;
-            handles.unwrap_or((None, None, None, None, None, None))
+            handles.unwrap_or((None, None, None, None, None, None, None))
         };
         if let Some(shutdown) = shutdown {
             shutdown.store(true, Ordering::Release);
@@ -330,7 +356,9 @@ impl MeetingController {
             let _ = fs::remove_file(audio_path);
             let _ = fs::remove_file(pcm_path);
         }
-        audio_capture::clear_sender();
+        if let Some(generation) = sender_generation {
+            audio_capture::clear_sender_if(generation);
+        }
         self.emit_state();
         Ok(self.status())
     }
@@ -620,7 +648,7 @@ impl MeetingController {
                     value.get("segments").cloned().unwrap_or_else(|| json!([])),
                 )
                 .unwrap_or_default();
-                let (session_id, audio_path, pcm_path) = {
+                let (session_id, audio_path, pcm_path, final_received) = {
                     let inner = match self.inner.lock() {
                         Ok(inner) => inner,
                         Err(_) => return,
@@ -632,8 +660,10 @@ impl MeetingController {
                         active.id.clone(),
                         active.audio_path.clone(),
                         active.pcm_path.clone(),
+                        active.worker_final_received.clone(),
                     )
                 };
+                final_received.store(true, Ordering::Release);
                 let payload = TranscriptPayload {
                     session_id,
                     kind: "final".into(),
@@ -684,13 +714,17 @@ impl MeetingController {
 
     fn begin_capture(&self) -> Result<(), String> {
         let (
+            session_id,
             microphone_only,
             system_only,
             stdin,
             worker_generation,
             worker_shutdown,
+            worker_final_received,
             audio_path,
             pcm_path,
+            capture_bundle_id,
+            capture_window_id,
         ) = {
             let inner = self
                 .inner
@@ -701,13 +735,17 @@ impl MeetingController {
                 .as_ref()
                 .ok_or("The meeting session was canceled")?;
             (
+                active.id.clone(),
                 inner.state.microphone_only,
                 inner.state.system_only,
                 active.worker_stdin.clone(),
                 active.worker_generation.clone(),
                 active.worker_shutdown.clone(),
+                active.worker_final_received.clone(),
                 active.audio_path.clone(),
                 active.pcm_path.clone(),
+                active.capture_bundle_id.clone(),
+                active.capture_window_id,
             )
         };
         let (capture_tx, capture_rx) = mpsc::channel();
@@ -727,10 +765,35 @@ impl MeetingController {
             inner.state.progress = None;
         }
         self.emit_state();
-        if std::env::var("ULPASO_AUDIO_MOCK").ok().as_deref() == Some("1") {
-            spawn_mock_capture(capture_tx, system_only);
-        } else {
-            audio_capture::start(capture_tx, microphone_only, system_only)?;
+        let capture_sender_generation =
+            if std::env::var("ULPASO_AUDIO_MOCK").ok().as_deref() == Some("1") {
+                spawn_mock_capture(capture_tx, system_only);
+                None
+            } else {
+                Some(audio_capture::start(
+                    capture_tx,
+                    microphone_only,
+                    system_only,
+                    capture_bundle_id.as_deref(),
+                    capture_window_id,
+                )?)
+            };
+        if let Some(generation) = capture_sender_generation {
+            let mut inner = self
+                .inner
+                .lock()
+                .map_err(|_| "Could not lock meeting state")?;
+            let Some(active) = inner
+                .active
+                .as_mut()
+                .filter(|active| active.id == session_id)
+            else {
+                if audio_capture::clear_sender_if(generation) {
+                    audio_capture::stop();
+                }
+                return Err("The meeting session was canceled".into());
+            };
+            active.capture_sender_generation = Some(generation);
         }
         let controller = self.clone();
         thread::spawn(move || {
@@ -740,6 +803,8 @@ impl MeetingController {
                 stdin,
                 worker_generation,
                 worker_shutdown,
+                worker_final_received,
+                capture_sender_generation,
                 audio_path,
                 pcm_path,
                 microphone_only,
@@ -757,6 +822,8 @@ impl MeetingController {
             stdin,
             worker_generation,
             worker_shutdown,
+            worker_final_received,
+            capture_sender_generation,
             audio_path,
             pcm_path,
             microphone_only,
@@ -802,12 +869,15 @@ impl MeetingController {
                 feeder_stdin,
                 feeder_generation,
                 feeder_shutdown,
+                worker_final_received,
                 feeder_pcm_path,
                 worker_queue_rx,
             );
             let _ = worker_done_tx.send(result);
         });
         let mut timeline = TimestampMixer::default();
+        let mut system_resampler = StreamingResampler::new(SAMPLE_RATE as f64);
+        let mut microphone_resampler = StreamingResampler::new(SAMPLE_RATE as f64);
         let mut last_system = Instant::now();
         let mut last_microphone = Instant::now();
         let mut _system_samples_received = 0usize;
@@ -831,7 +901,12 @@ impl MeetingController {
                     presentation_seconds,
                     source,
                 }) => {
-                    let converted = resample_linear(&samples, sample_rate, SAMPLE_RATE as f64);
+                    let converted = match source {
+                        AudioSource::System => system_resampler.process(&samples, sample_rate),
+                        AudioSource::Microphone => {
+                            microphone_resampler.process(&samples, sample_rate)
+                        }
+                    };
                     match source {
                         AudioSource::System => {
                             last_system = Instant::now();
@@ -888,7 +963,9 @@ impl MeetingController {
                     "The microphone disconnected while recording. Check the device and try again."
                 };
                 self.fail("microphone_unavailable", message.into());
-                audio_capture::clear_sender();
+                if let Some(generation) = capture_sender_generation {
+                    audio_capture::clear_sender_if(generation);
+                }
                 return;
             }
 
@@ -931,7 +1008,7 @@ impl MeetingController {
                     }
                     break;
                 }
-                let mixed = timeline.take(take, microphone_only);
+                let mixed = timeline.take(take, microphone_only, system_only);
                 for sample in &mixed {
                     let integer = (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
                     let _ = writer.write_sample(integer);
@@ -978,6 +1055,7 @@ impl MeetingController {
             let mixed = timeline.take(
                 timeline.remaining().min(AUDIO_FRAME_SAMPLES),
                 microphone_only,
+                system_only,
             );
             for sample in &mixed {
                 let _ = writer.write_sample((sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16);
@@ -998,21 +1076,25 @@ impl MeetingController {
             worker_shutdown.store(true, Ordering::Release);
             let _ = worker_queue_tx.send(WorkerQueueMessage::Cancel);
             let _ = worker_done_rx.recv_timeout(Duration::from_secs(3));
-            audio_capture::clear_sender();
+            if let Some(generation) = capture_sender_generation {
+                audio_capture::clear_sender_if(generation);
+            }
             return;
         }
         let _ = worker_queue_tx.send(WorkerQueueMessage::Finish {
             end_offset: pcm_offset,
         });
-        let feed_result = worker_done_rx.recv_timeout(Duration::from_secs(120));
-        if !matches!(feed_result, Ok(Ok(()))) {
+        let feed_result = worker_done_rx.recv_timeout(worker_finish_timeout(pcm_offset));
+        if !matches!(feed_result, Ok(Ok(()))) && self.status().phase != "error" {
             self.fail(
                 "worker_recovery_timeout",
                 "The transcription engine did not recover. Audio was kept in the recovery folder"
                     .into(),
             );
         }
-        audio_capture::clear_sender();
+        if let Some(generation) = capture_sender_generation {
+            audio_capture::clear_sender_if(generation);
+        }
     }
 
     fn mark_recording(&self, message: String) {
@@ -1032,11 +1114,20 @@ impl MeetingController {
         if diagnostics_enabled() {
             eprintln!("[meeting-state] phase=idle");
         }
-        if let Ok(mut inner) = self.inner.lock() {
+        let sender_generation = if let Ok(mut inner) = self.inner.lock() {
+            let sender_generation = inner
+                .active
+                .as_ref()
+                .and_then(|active| active.capture_sender_generation);
             inner.state = MeetingStateSnapshot::default();
             inner.active = None;
+            sender_generation
+        } else {
+            None
+        };
+        if let Some(generation) = sender_generation {
+            audio_capture::clear_sender_if(generation);
         }
-        audio_capture::clear_sender();
         self.emit_state();
     }
 
@@ -1302,11 +1393,15 @@ pub fn meeting_prepare(
 pub fn meeting_start(
     microphone_only: Option<bool>,
     system_only: Option<bool>,
+    capture_bundle_id: Option<String>,
+    capture_window_id: Option<u32>,
     controller: tauri::State<'_, MeetingController>,
 ) -> Result<MeetingStateSnapshot, String> {
     controller.start(
         microphone_only.unwrap_or(false),
         system_only.unwrap_or(false),
+        capture_bundle_id,
+        capture_window_id,
     )
 }
 
@@ -1371,6 +1466,16 @@ pub fn meeting_open_microphone_settings() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn worker_finish_timeout_scales_for_full_disk_replay() {
+        let podcast_bytes = 28_u64 * 60 * SAMPLE_RATE as u64 * std::mem::size_of::<f32>() as u64;
+        assert_eq!(worker_finish_timeout(0), Duration::from_secs(120));
+        assert_eq!(
+            worker_finish_timeout(podcast_bytes),
+            Duration::from_secs(16 * 60)
+        );
+    }
 
     #[test]
     fn warns_when_all_four_anonymous_speaker_slots_are_used() {

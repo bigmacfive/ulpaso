@@ -513,8 +513,8 @@ prosekit-table-handle-drop-indicator {
 [data-kuku-code-mirror-host] .cm-focused .cm-selectionBackground,
 [data-kuku-code-mirror-host] .cm-selectionBackground,
 [data-kuku-code-mirror-host] .cm-content ::selection {
-  background-color: var(--color-accent-dim);
-  color: inherit;
+  background-color: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 [data-kuku-code-block-preview] {

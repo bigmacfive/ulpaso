@@ -3,5 +3,10 @@
   "identifier": "default",
   "description": "Default permissions for the Ulpaso editor window",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-start-dragging"]
+  "permissions": [
+    "core:default",
+    "core:app:allow-set-app-theme",
+    "core:window:allow-start-dragging",
+    "opener:allow-open-url"
+  ]
 }

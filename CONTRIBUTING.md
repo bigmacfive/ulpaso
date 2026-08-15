@@ -1,6 +1,6 @@
 # Contributing to Ulpaso
 
-Thanks for helping improve Ulpaso. Keep changes focused, testable, and respectful of the app's local-first design.
+Thanks for helping improve Ulpaso. Keep changes focused, testable, and respectful of the app's local, on-device design.
 
 ## Before you start
 

@@ -10,12 +10,14 @@ const zoom: MeetingDetectionSnapshot = {
   detected: true,
   appName: "Zoom",
   bundleId: "us.zoom.xos",
+  windowId: 42,
 };
 const cleared: MeetingDetectionSnapshot = {
   available: true,
   detected: false,
   appName: null,
   bundleId: null,
+  windowId: null,
 };
 
 describe("meeting detection preference", () => {

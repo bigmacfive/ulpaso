@@ -1,0 +1,191 @@
+{
+  "measuredAt": "2026-08-13",
+  "model": "mlx-community/Qwen3-ASR-0.6B-8bit",
+  "modelRevision": "89e96d92ba34aca20b3e29fb10cc284097d1219f",
+  "inputSampleRate": 48000,
+  "outputSampleRate": 16000,
+  "filterTaps": 255,
+  "cutoffGuard": 0.9,
+  "windowSeconds": 20,
+  "sampleCount": 4,
+  "audioSeconds": 479.986,
+  "committedMediaOrTranscripts": false,
+  "currentMixer": "tanh(0.65 * system + 0.82 * microphone)",
+  "decision": {
+    "selectedMixer": "current",
+    "productionChangeSupported": false
+  },
+  "sourceAssets": [
+    {
+      "id": "h7p-xSmMtg4",
+      "title": "줌 송년회 한국어 대화",
+      "language": "Korean",
+      "referenceQuality": "manual",
+      "audioSeconds": 120.0,
+      "audioSha256": "7d72829b1e59b5e0694b8dd190181ae8aa79b49f18151d275b87de33d324c50d",
+      "subtitleSha256": "8f72e341166ef0bd5cfce06d952ae667df389615b33565d80e6dd5957679e821",
+      "noiseSeed": 2622015412
+    },
+    {
+      "id": "Ux-TMWnmntM",
+      "title": "Natural Korean Conversation · 태웅쌤",
+      "language": "Korean",
+      "referenceQuality": "manual",
+      "audioSeconds": 120.0,
+      "audioSha256": "7c0709eb3af99e747ce708956411c479333df72e08214786da9d09ca03aa60f2",
+      "subtitleSha256": "0046e0b4651878a273b49e802e47742db250f2d670e0343b2bed7a6472da8207",
+      "noiseSeed": 1612019517
+    },
+    {
+      "id": "cSwaRkus1q4",
+      "title": "한국어 지인 인터뷰",
+      "language": "Korean",
+      "referenceQuality": "manual",
+      "audioSeconds": 119.993,
+      "audioSha256": "d04100d0b2d2ff721d3826c65d2ba7ff9d68c624c37b5bfd98637a0fe90ec36e",
+      "subtitleSha256": "9d0c58db319d72a2feb064a1c2462fc058c6ed5e478e1c803dd498728b8c7c18",
+      "noiseSeed": 2310942194
+    },
+    {
+      "id": "vif8NQcjVf0",
+      "title": "Lex Fridman · Jensen Huang",
+      "language": "English",
+      "referenceQuality": "manual",
+      "audioSeconds": 119.993,
+      "audioSha256": "682894922efd1f179499afbfb04a564079813b9fffb669caad0cfba33b97ecb4",
+      "subtitleSha256": "ebabfecc90188ff983cf1dca81ed2d2fb7c00608c2567a244bcf04198cbd39b0",
+      "noiseSeed": 388917739
+    }
+  ],
+  "conditions": {
+    "silentMic": "exact float-zero microphone",
+    "deviceNoiseMinus50Dbfs": "deterministic colored device noise at -50 dBFS RMS",
+    "hvacNoiseMinus38Dbfs": "deterministic colored HVAC noise at -38 dBFS RMS",
+    "independentSpeechMinus10Db": "next public fixture on microphone at -10 dB relative to system RMS; system-caption preservation stress only",
+    "microphoneOnly": "exact float-zero system source",
+    "echo120msMinus14Db": "system delayed 120 ms at -14 dB on microphone plus -60 dBFS colored noise",
+    "roomEchoMultitapNonlinear": "85/142/227 ms taps at -15/-22/-27 dB, mild tanh nonlinearity, and -55 dBFS noise",
+    "echoPlusLocalSpeechMinus14Db": "simple echo plus independent local speech at -14 dB",
+    "echoPlusQuietLocalSpeechMinus24Db": "simple echo plus independent local speech at -24 dB"
+  },
+  "conditionGenerator": {
+    "noiseSeed": "unsigned integer from the first 8 hexadecimal characters of SHA-256(sample id)",
+    "coloredNoise": "NumPy PCG64 standard normal; AR(1) coefficient 0.96 plus 0.15 times the original white noise; normalize to the stated RMS",
+    "independentSpeech": "next sourceAssets item cyclically, RMS-normalized to the stated level",
+    "sourceOrder": "generate both 48 kHz sources, then apply the production FIR independently before mixing"
+  },
+  "activityAware": {
+    "candidateMixer": "causal 20 ms -46 dBFS RMS gate; transparent sole active source, current mixer for dual-active frames",
+    "decision": "rejected",
+    "productionChangeSupported": false,
+    "results": [
+      {
+        "condition": "silentMic",
+        "currentMacroWer": 0.201528,
+        "candidateMacroWer": 0.197642,
+        "currentMacroCer": 0.106147,
+        "candidateMacroCer": 0.103598,
+        "currentWordEdits": 158,
+        "candidateWordEdits": 155
+      },
+      {
+        "condition": "deviceNoiseMinus50Dbfs",
+        "currentMacroWer": 0.198692,
+        "candidateMacroWer": 0.196615,
+        "currentMacroCer": 0.104786,
+        "candidateMacroCer": 0.100815,
+        "currentWordEdits": 157,
+        "candidateWordEdits": 155
+      },
+      {
+        "condition": "hvacNoiseMinus38Dbfs",
+        "currentMacroWer": 0.202028,
+        "candidateMacroWer": 0.221512,
+        "currentMacroCer": 0.113323,
+        "candidateMacroCer": 0.12292,
+        "currentWordEdits": 158,
+        "candidateWordEdits": 173
+      },
+      {
+        "condition": "independentSpeechMinus10Db",
+        "currentMacroWer": 0.40701,
+        "candidateMacroWer": 0.414315,
+        "currentMacroCer": 0.338996,
+        "candidateMacroCer": 0.328524,
+        "currentWordEdits": 319,
+        "candidateWordEdits": 325
+      },
+      {
+        "condition": "microphoneOnly",
+        "currentMacroWer": 0.197923,
+        "candidateMacroWer": 0.197642,
+        "currentMacroCer": 0.104549,
+        "candidateMacroCer": 0.103598,
+        "currentWordEdits": 156,
+        "candidateWordEdits": 155
+      }
+    ]
+  },
+  "echoSuppression": {
+    "candidate": "causal 1 s delayed-correlation echo-only suppression with current-mixer fallback and 40 ms raised-cosine transition",
+    "detector": {
+      "blockSeconds": 1.0,
+      "lagSearchMilliseconds": [40, 250],
+      "lagStepMilliseconds": 10,
+      "minimumNormalizedCorrelation": 0.82,
+      "leastSquaresGainRange": [0.02, 0.6],
+      "maximumResidualRmsRatio": 0.55
+    },
+    "decision": "rejected",
+    "productionChangeSupported": false,
+    "simpleEcho": {
+      "detectedBlocks": 440,
+      "totalBlocks": 480,
+      "currentMacroWer": 0.216572,
+      "candidateMacroWer": 0.197649,
+      "currentMacroCer": 0.119088,
+      "candidateMacroCer": 0.102201,
+      "currentWordEdits": 170,
+      "candidateWordEdits": 155,
+      "currentCharacterEdits": 268,
+      "candidateCharacterEdits": 228
+    },
+    "safety": {
+      "nonEchoControlDetectedBlocks": 0,
+      "nonEchoControlTotalBlocks": 2400,
+      "roomEchoMultitapDetectedBlocks": 1,
+      "roomEchoMultitapTotalBlocks": 480,
+      "localSpeechDetectedAsEchoBlocks": 110,
+      "localSpeechTotalBlocks": 480,
+      "quietLocalSpeechDetectedAsEchoBlocks": 412,
+      "quietLocalSpeechTotalBlocks": 480,
+      "localSpeechPreserved": false
+    }
+  },
+  "alternatingSourceGain": {
+    "method": "three cyclic Korean fixture pairs; six 20 s non-overlap blocks alternate system A and microphone B; each source appears once in each role",
+    "decision": "insufficient-evidence",
+    "productionChangeSupported": false,
+    "fixtureCount": 3,
+    "referenceWords": 671,
+    "referenceCharacters": 1894,
+    "current": {
+      "wordEdits": 232,
+      "characterEdits": 463,
+      "microWer": 0.345753,
+      "microCer": 0.244456
+    },
+    "systemUnity": {
+      "equation": "tanh(1.0 * system + 0.82 * microphone)",
+      "wordEdits": 229,
+      "characterEdits": 459,
+      "microWer": 0.341282,
+      "microCer": 0.242344
+    },
+    "wordEditReduction": 3,
+    "improvedFixtureCount": 1,
+    "minimumSupportWordEditReduction": 5,
+    "minimumSupportImprovedFixtureCount": 2,
+    "simultaneousLocalAndSystemSpeechValidated": false
+  }
+}

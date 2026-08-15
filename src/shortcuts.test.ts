@@ -28,6 +28,10 @@ describe("shortcut registry", () => {
     expect(appShortcutAction(keyEvent("k", { ctrlKey: true, altKey: true }))).toBeNull();
   });
 
+  it("does not reserve the removed focus-mode shortcut", () => {
+    expect(appShortcutAction(keyEvent("F", { metaKey: true, shiftKey: true }))).toBeNull();
+  });
+
   it("exposes readable key hints from the same registry used by the guide", () => {
     expect(shortcutHint("settings")).toBe("⌘ ,");
     expect(shortcutHint("meeting")).toBe("⌘ ⇧ M");

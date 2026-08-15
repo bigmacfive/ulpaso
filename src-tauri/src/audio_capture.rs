@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_char, c_double, c_float, c_int, CStr},
+    ffi::{c_char, c_double, c_float, c_int, CStr, CString},
     sync::{mpsc::Sender, Mutex, OnceLock},
     time::Duration,
 };
@@ -24,15 +24,30 @@ pub enum AudioSource {
     Microphone,
 }
 
-static EVENT_SENDER: OnceLock<Mutex<Option<Sender<CaptureEvent>>>> = OnceLock::new();
+#[derive(Default)]
+struct EventSenderSlot {
+    generation: u64,
+    sender: Option<Sender<CaptureEvent>>,
+}
+
+static EVENT_SENDER: OnceLock<Mutex<EventSenderSlot>> = OnceLock::new();
 static MICROPHONE_PERMISSION_SENDER: OnceLock<Mutex<Option<Sender<c_int>>>> = OnceLock::new();
 
-fn sender_slot() -> &'static Mutex<Option<Sender<CaptureEvent>>> {
-    EVENT_SENDER.get_or_init(|| Mutex::new(None))
+fn sender_slot() -> &'static Mutex<EventSenderSlot> {
+    EVENT_SENDER.get_or_init(|| Mutex::new(EventSenderSlot::default()))
 }
 
 fn microphone_permission_sender_slot() -> &'static Mutex<Option<Sender<c_int>>> {
     MICROPHONE_PERMISSION_SENDER.get_or_init(|| Mutex::new(None))
+}
+
+fn register_sender(sender: Sender<CaptureEvent>) -> Result<u64, String> {
+    let mut slot = sender_slot()
+        .lock()
+        .map_err(|_| "Could not initialize audio capture state")?;
+    slot.generation = slot.generation.wrapping_add(1).max(1);
+    slot.sender = Some(sender);
+    Ok(slot.generation)
 }
 
 #[cfg(target_os = "macos")]
@@ -42,6 +57,8 @@ extern "C" {
         audio_callback: extern "C" fn(*const c_float, usize, c_double, c_double, c_int),
         state_callback: extern "C" fn(c_int, *const c_char),
         microphone_only: c_int,
+        capture_bundle_id: *const c_char,
+        capture_window_id: u32,
     );
     fn ulpaso_audio_capture_stop();
     fn ulpaso_microphone_authorization_status() -> c_int;
@@ -78,8 +95,9 @@ pub fn microphone_permission_status() -> &'static str {
 pub async fn request_microphone_permission() -> Result<&'static str, String> {
     #[cfg(target_os = "macos")]
     {
-        if microphone_permission_status() != "not-determined" {
-            return Ok(microphone_permission_status());
+        let current = microphone_permission_status();
+        if current != "not-determined" {
+            return Ok(current);
         }
         let (sender, receiver) = std::sync::mpsc::channel();
         {
@@ -135,7 +153,7 @@ extern "C" fn receive_audio(
         },
     };
     if let Ok(slot) = sender_slot().lock() {
-        if let Some(sender) = slot.as_ref() {
+        if let Some(sender) = slot.sender.as_ref() {
             let _ = sender.send(event);
         }
     }
@@ -151,7 +169,7 @@ extern "C" fn receive_state(code: c_int, message: *const c_char) {
             .into_owned()
     };
     if let Ok(slot) = sender_slot().lock() {
-        if let Some(sender) = slot.as_ref() {
+        if let Some(sender) = slot.sender.as_ref() {
             let _ = sender.send(CaptureEvent::State { code, message });
         }
     }
@@ -170,15 +188,25 @@ pub fn start(
     sender: Sender<CaptureEvent>,
     microphone_only: bool,
     system_only: bool,
-) -> Result<(), String> {
+    capture_bundle_id: Option<&str>,
+    capture_window_id: Option<u32>,
+) -> Result<u64, String> {
     if !is_available() {
         return Err(
             "Meeting transcription requires an Apple Silicon Mac running macOS 15 or later".into(),
         );
     }
-    *sender_slot()
-        .lock()
-        .map_err(|_| "Could not initialize audio capture state")? = Some(sender);
+    let capture_bundle_id = capture_bundle_id
+        .filter(|value| !value.trim().is_empty())
+        .map(CString::new)
+        .transpose()
+        .map_err(|_| "The capture application identifier is invalid")?;
+    let capture_window_id = if capture_bundle_id.is_some() {
+        capture_window_id.filter(|value| *value != 0).unwrap_or(0)
+    } else {
+        0
+    };
+    let sender_generation = register_sender(sender)?;
     #[cfg(target_os = "macos")]
     unsafe {
         ulpaso_audio_capture_start(
@@ -191,9 +219,13 @@ pub fn start(
             } else {
                 0
             },
+            capture_bundle_id
+                .as_ref()
+                .map_or(std::ptr::null(), |value| value.as_ptr()),
+            capture_window_id,
         );
     }
-    Ok(())
+    Ok(sender_generation)
 }
 
 pub fn stop() {
@@ -203,8 +235,39 @@ pub fn stop() {
     }
 }
 
-pub fn clear_sender() {
+pub fn clear_sender_if(generation: u64) -> bool {
     if let Ok(mut slot) = sender_slot().lock() {
-        *slot = None;
+        if slot.generation == generation {
+            slot.sender = None;
+            return true;
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    #[test]
+    fn stale_capture_cleanup_does_not_clear_a_new_sender() {
+        let (first_sender, _first_receiver) = mpsc::channel();
+        let first_generation = register_sender(first_sender).expect("register first sender");
+        let (second_sender, _second_receiver) = mpsc::channel();
+        let second_generation = register_sender(second_sender).expect("register second sender");
+
+        assert!(!clear_sender_if(first_generation));
+        let slot = sender_slot().lock().expect("inspect sender slot");
+        assert_eq!(slot.generation, second_generation);
+        assert!(slot.sender.is_some());
+        drop(slot);
+
+        assert!(clear_sender_if(second_generation));
+        assert!(sender_slot()
+            .lock()
+            .expect("inspect cleared sender slot")
+            .sender
+            .is_none());
     }
 }

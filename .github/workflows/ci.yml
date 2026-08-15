@@ -9,34 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  website:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: website
-
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: website/package-lock.json
-
-      - name: Install website dependencies
-        run: npm ci
-
-      - name: Test website routes
-        run: npm test
-
-      - name: Build website
-        run: npm run build
-
-      - name: Verify website artifact routes
-        run: npm run test:sites
-
   verify:
     runs-on: macos-15
     timeout-minutes: 30
@@ -66,6 +38,18 @@ jobs:
       - name: Build frontend
         run: pnpm build
 
+      - name: Install website dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Build website
+        working-directory: website
+        run: npm run build
+
+      - name: Verify website routes
+        working-directory: website
+        run: npm run test:sites
+
       - name: Verify reusable package artifact
         run: |
           package_dir="$RUNNER_TEMP/markdown-package"
@@ -84,6 +68,9 @@ jobs:
             --target-arch aarch64
 
       - name: Check Python helpers
+        run: python -m pip install --disable-pip-version-check numpy==2.2.6
+
+      - name: Test Python helpers
         run: pnpm test:python
 
       - name: Check worker logic

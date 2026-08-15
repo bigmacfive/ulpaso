@@ -18,6 +18,10 @@ interface MeetingEditorTranscript {
   speakerLimitWarning: boolean;
 }
 
+function normalizedTranscriptText(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
 class MeetingEditorBridge {
   private editor: KukuEditorHandle | null = null;
   private state: MeetingEditorState = { phase: "idle", sessionId: null };
@@ -87,7 +91,18 @@ class MeetingEditorBridge {
       return false;
     }
     if (payload.kind === "final") {
-      this.editor.finalizeMeeting(payload.sessionId, payload.segments);
+      const segmentText = payload.segments
+        .map((segment) => segment.text.trim())
+        .filter(Boolean)
+        .join(" ");
+      const segmentsPreserveContent = normalizedTranscriptText(segmentText)
+        === normalizedTranscriptText(payload.stableText);
+      const segments = segmentText && segmentsPreserveContent
+        ? payload.segments
+        : payload.stableText.trim()
+          ? [{ speaker: null, text: payload.stableText.trim() }]
+          : [];
+      this.editor.finalizeMeeting(payload.sessionId, segments);
       this.activeSessionId = null;
       this.titles.delete(payload.sessionId);
       return true;

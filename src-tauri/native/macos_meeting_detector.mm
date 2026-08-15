@@ -2,11 +2,8 @@
 #import <CoreAudio/CoreAudio.h>
 #import <CoreGraphics/CoreGraphics.h>
 
-#include <libproc.h>
-
 #include <algorithm>
 #include <cstring>
-#include <vector>
 
 namespace {
 void CopyUtf8(NSString *value, char *destination, size_t length) {
@@ -45,73 +42,8 @@ bool DefaultMicrophoneIsRunning() {
          running != 0;
 }
 
-bool IsDescendantProcess(pid_t candidate, pid_t ancestor) {
-  if (candidate <= 0 || ancestor <= 0) return false;
-  for (int depth = 0; depth < 32 && candidate > 1; ++depth) {
-    if (candidate == ancestor) return true;
-    struct proc_bsdinfo info = {};
-    if (proc_pidinfo(candidate, PROC_PIDTBSDINFO, 0, &info, sizeof(info)) !=
-        sizeof(info)) {
-      return false;
-    }
-    const pid_t parent = static_cast<pid_t>(info.pbi_ppid);
-    if (parent <= 0 || parent == candidate) return false;
-    candidate = parent;
-  }
-  return false;
-}
-
-bool ProcessTreeHasRunningOutput(pid_t rootProcessID) {
-  AudioObjectPropertyAddress listAddress = {
-      kAudioHardwarePropertyProcessObjectList,
-      kAudioObjectPropertyScopeGlobal,
-      kAudioObjectPropertyElementMain,
-  };
-  UInt32 listSize = 0;
-  if (AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &listAddress, 0,
-                                     nullptr, &listSize) != noErr ||
-      listSize == 0) {
-    return false;
-  }
-
-  std::vector<AudioObjectID> processes(listSize / sizeof(AudioObjectID));
-  if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &listAddress, 0,
-                                 nullptr, &listSize, processes.data()) !=
-      noErr) {
-    return false;
-  }
-
-  for (AudioObjectID process : processes) {
-    UInt32 runningOutput = 0;
-    UInt32 runningSize = sizeof(runningOutput);
-    AudioObjectPropertyAddress runningAddress = {
-        kAudioProcessPropertyIsRunningOutput,
-        kAudioObjectPropertyScopeGlobal,
-        kAudioObjectPropertyElementMain,
-    };
-    if (AudioObjectGetPropertyData(process, &runningAddress, 0, nullptr,
-                                   &runningSize, &runningOutput) != noErr ||
-        runningOutput == 0) {
-      continue;
-    }
-
-    pid_t processID = 0;
-    UInt32 processIDSize = sizeof(processID);
-    AudioObjectPropertyAddress processIDAddress = {
-        kAudioProcessPropertyPID,
-        kAudioObjectPropertyScopeGlobal,
-        kAudioObjectPropertyElementMain,
-    };
-    if (AudioObjectGetPropertyData(process, &processIDAddress, 0, nullptr,
-                                   &processIDSize, &processID) == noErr &&
-        IsDescendantProcess(processID, rootProcessID)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-NSString *LargestFrontmostWindowTitle(pid_t processID) {
+NSString *LargestFrontmostWindowTitle(pid_t processID, CGWindowID *windowID) {
+  if (windowID) *windowID = kCGNullWindowID;
   CFArrayRef windows = CGWindowListCopyWindowInfo(
       kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
       kCGNullWindowID);
@@ -136,6 +68,10 @@ NSString *LargestFrontmostWindowTitle(pid_t processID) {
     if (area > largestArea && candidate.length > 0) {
       largestArea = area;
       title = candidate;
+      if (windowID) {
+        *windowID =
+            [window[(id)kCGWindowNumber] unsignedIntValue];
+      }
     }
   }
   CFRelease(windows);
@@ -145,21 +81,18 @@ NSString *LargestFrontmostWindowTitle(pid_t processID) {
 
 extern "C" int ulpaso_meeting_environment(
     char *bundleID, size_t bundleIDLength, char *appName,
-    size_t appNameLength, char *windowTitle, size_t windowTitleLength) {
+    size_t appNameLength, char *windowTitle, size_t windowTitleLength,
+    uint32_t *windowID) {
   @autoreleasepool {
     NSRunningApplication *application =
         NSWorkspace.sharedWorkspace.frontmostApplication;
+    CGWindowID selectedWindowID = kCGNullWindowID;
     CopyUtf8(application.bundleIdentifier, bundleID, bundleIDLength);
     CopyUtf8(application.localizedName, appName, appNameLength);
-    CopyUtf8(LargestFrontmostWindowTitle(application.processIdentifier),
+    CopyUtf8(LargestFrontmostWindowTitle(application.processIdentifier,
+                                         &selectedWindowID),
              windowTitle, windowTitleLength);
-    const bool microphoneActive = DefaultMicrophoneIsRunning();
-    const bool systemAudioActive =
-        application && ProcessTreeHasRunningOutput(application.processIdentifier);
-    return (microphoneActive ? 1 : 0) | (systemAudioActive ? 2 : 0);
+    if (windowID) *windowID = selectedWindowID;
+    return DefaultMicrophoneIsRunning() ? 1 : 0;
   }
-}
-
-extern "C" int ulpaso_process_tree_has_running_output(pid_t processID) {
-  return ProcessTreeHasRunningOutput(processID) ? 1 : 0;
 }

@@ -1,50 +1,63 @@
-use rfd::{AsyncMessageDialog, MessageButtons, MessageDialogResult, MessageLevel};
-use tauri::AppHandle;
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
 
-pub fn spawn_update_check(app: AppHandle) {
-    if cfg!(debug_assertions) {
-        return;
-    }
-
-    tauri::async_runtime::spawn(async move {
-        if let Err(error) = check_and_install(app).await {
-            eprintln!("Update check failed: {error}");
-        }
-    });
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppUpdate {
+    version: String,
 }
 
-async fn check_and_install(app: AppHandle) -> tauri_plugin_updater::Result<()> {
-    let Some(update) = app.updater()?.check().await? else {
-        return Ok(());
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateProgress {
+    downloaded: u64,
+    total: Option<u64>,
+}
+
+#[tauri::command]
+pub async fn update_check(app: AppHandle) -> Result<Option<AppUpdate>, String> {
+    if cfg!(debug_assertions) {
+        return Ok(None);
+    }
+
+    app.updater()
+        .map_err(|error| error.to_string())?
+        .check()
+        .await
+        .map_err(|error| error.to_string())
+        .map(|update| {
+            update.map(|update| AppUpdate {
+                version: update.version,
+            })
+        })
+}
+
+#[tauri::command]
+pub async fn update_install(app: AppHandle) -> Result<(), String> {
+    let Some(update) = app
+        .updater()
+        .map_err(|error| error.to_string())?
+        .check()
+        .await
+        .map_err(|error| error.to_string())?
+    else {
+        return Err("No update is currently available.".into());
     };
 
-    let install = AsyncMessageDialog::new()
-        .set_level(MessageLevel::Info)
-        .set_title("Ulpaso update available")
-        .set_description(format!(
-            "Version {} is ready. Install it now and restart Ulpaso?",
-            update.version
-        ))
-        .set_buttons(MessageButtons::YesNo)
-        .show()
+    let progress_app = app.clone();
+    let mut downloaded = 0_u64;
+    update
+        .download_and_install(
+            move |chunk_length, total| {
+                downloaded = downloaded.saturating_add(chunk_length as u64);
+                let _ =
+                    progress_app.emit("update://progress", UpdateProgress { downloaded, total });
+            },
+            || {},
+        )
         .await
-        == MessageDialogResult::Yes;
-
-    if !install {
-        return Ok(());
-    }
-
-    if let Err(error) = update.download_and_install(|_, _| {}, || {}).await {
-        AsyncMessageDialog::new()
-            .set_level(MessageLevel::Error)
-            .set_title("Update could not be installed")
-            .set_description("Ulpaso will try again the next time it starts.")
-            .set_buttons(MessageButtons::Ok)
-            .show()
-            .await;
-        return Err(error);
-    }
+        .map_err(|error| error.to_string())?;
 
     app.restart();
 }

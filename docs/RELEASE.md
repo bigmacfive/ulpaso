@@ -7,8 +7,9 @@ Every release includes a DMG checksum plus a signed Tauri updater bundle and
 ## Automated build
 
 Pushing a SemVer tag such as `v0.1.0` runs the Apple Silicon release workflow,
-executes all quality gates, assembles the pinned Python runtime, signs and
-notarizes the application, and creates a GitHub release. A manual workflow run
+executes all quality gates, builds the compact bootstrap application, signs and
+notarizes it, and creates a GitHub release. The local runtime and models remain
+outside the initial app bundle and are installed only after first-use consent. A manual workflow run
 keeps the same files as a 14-day Actions artifact instead of creating a release.
 
 The workflow requires `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
@@ -18,8 +19,9 @@ key backed up outside GitHub; losing it prevents updates for existing installs.
 
 Before tagging:
 
-1. Update the versions in `package.json`, `packages/markdown/package.json`,
-   `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+1. Update the application versions in `package.json`, `src-tauri/Cargo.toml`,
+   and `src-tauri/tauri.conf.json`. Update `packages/markdown/package.json`
+   separately only when publishing that package.
 2. Move user-visible entries from `Unreleased` in `CHANGELOG.md` to the release.
 3. Run `pnpm check` and `pnpm build`. A full signed release build requires the
    same signing and notarization environment variables used by CI.

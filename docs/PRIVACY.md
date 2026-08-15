@@ -1,6 +1,6 @@
 # Privacy and data flow
 
-Ulpaso is local-first. This document describes what leaves the device and what remains on it.
+Ulpaso is a local app. This document describes what leaves the device and what remains on it.
 
 ## Documents
 
@@ -34,6 +34,8 @@ The editor itself does not need a network connection. The meeting feature makes 
 - pinned transcription and speaker-separation model revisions from Hugging Face.
 
 The downloaded artifacts are stored in the app data directory. Audio samples and transcript text are not included in those requests.
+
+Ulpaso also contacts GitHub Releases to check for signed application updates. These checks contain no document, audio, or transcript content.
 
 ## Removing local data
 

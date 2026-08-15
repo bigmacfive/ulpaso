@@ -152,6 +152,145 @@ describe("KukuEditor meeting integration", () => {
     dispose();
   });
 
+  it("does not merge earlier speakers when a rolling accuracy block rewrites text", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    let handle: KukuEditorHandle | undefined;
+    const dispose = render(
+      () => (
+        <KukuEditor
+          initialMarkdown={"회의 전 문장\n"}
+          onReady={(next) => { handle = next; }}
+          onChange={() => undefined}
+        />
+      ),
+      root,
+    );
+    await Promise.resolve();
+
+    handle!.beginMeeting("session-correction", "미팅 노트");
+    handle!.updateMeeting(
+      "session-correction",
+      "안녕하세요 오늘 회의를 시작합니다",
+      "",
+      1,
+    );
+    handle!.updateMeeting(
+      "session-correction",
+      "안녕하세요 오늘 회의를 시작합니다 두 번째 화자가 답합니다",
+      "",
+      2,
+    );
+    handle!.updateMeeting(
+      "session-correction",
+      "안녕하세요. 오늘 회의를 시작합니다. 두 번째 화자가 답변합니다.",
+      "",
+      2,
+    );
+
+    const markdown = handle!.getMarkdown();
+    expect(markdown.match(/\*\*Speaker 1\*\*/g)).toHaveLength(1);
+    expect(markdown.match(/\*\*Speaker 2\*\*/g)).toHaveLength(1);
+    expect(markdown).toContain("안녕하세요. 오늘 회의를 시작합니다.");
+    expect(markdown).toContain("두 번째 화자가 답변합니다.");
+    dispose();
+  });
+
+  it("keeps reliable live speaker boundaries when final diarization collapses them", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    let handle: KukuEditorHandle | undefined;
+    const dispose = render(
+      () => (
+        <KukuEditor
+          initialMarkdown={"회의 전 문장\n"}
+          onReady={(next) => { handle = next; }}
+          onChange={() => undefined}
+        />
+      ),
+      root,
+    );
+    await Promise.resolve();
+
+    handle!.beginMeeting("session-final-regression", "미팅 노트");
+    handle!.updateMeeting("session-final-regression", "첫 화자 발언", "", 1);
+    handle!.updateMeeting("session-final-regression", "첫 화자 발언 둘째 화자 답변", "", 2);
+    handle!.finalizeMeeting("session-final-regression", [
+      { speaker: 1, text: "첫 화자 발언. 둘째 화자 답변." },
+    ]);
+
+    const markdown = handle!.getMarkdown();
+    expect(markdown.match(/\*\*Speaker 1\*\*/g)).toHaveLength(1);
+    expect(markdown.match(/\*\*Speaker 2\*\*/g)).toHaveLength(1);
+    dispose();
+  });
+
+  it("follows the live transcript tail until the user scrolls away", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    let handle: KukuEditorHandle | undefined;
+    const dispose = render(
+      () => (
+        <KukuEditor
+          initialMarkdown={"회의 전 문장\n"}
+          onReady={(next) => { handle = next; }}
+          onChange={() => undefined}
+        />
+      ),
+      root,
+    );
+    await Promise.resolve();
+
+    const viewport = root.querySelector<HTMLElement>(".kuku-editor-scroll")!;
+    Object.defineProperties(viewport, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    handle!.beginMeeting("session-scroll", "미팅 노트");
+    expect(viewport.scrollTop).toBe(1_000);
+
+    viewport.scrollTop = 120;
+    viewport.dispatchEvent(new Event("scroll"));
+    handle!.updateMeeting("session-scroll", "사용자가 읽는 동안 추가된 문장", "작성 중", 1);
+    expect(viewport.scrollTop).toBe(120);
+
+    viewport.scrollTop = 800;
+    viewport.dispatchEvent(new Event("scroll"));
+    handle!.updateMeeting("session-scroll", "사용자가 읽는 동안 추가된 문장 최신 문장", "계속 작성 중", 1);
+    expect(viewport.scrollTop).toBe(1_000);
+    dispose();
+  });
+
+  it("dismisses the document hint after any editing command until a new blank document loads", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    let handle: KukuEditorHandle | undefined;
+    const dispose = render(
+      () => (
+        <KukuEditor
+          initialMarkdown={""}
+          onReady={(next) => { handle = next; }}
+          onChange={() => undefined}
+        />
+      ),
+      root,
+    );
+    await Promise.resolve();
+
+    expect(handle!.getElement().dataset.empty).toBe("true");
+    expect(handle!.command("toggleHeading", { level: 1 })).toBe(true);
+    expect(handle!.getElement().querySelector("h1")).not.toBeNull();
+    expect(handle!.getElement().dataset.empty).toBe("false");
+
+    expect(handle!.command("toggleHeading", { level: 1 })).toBe(true);
+    expect(handle!.getElement().querySelector("p")).not.toBeNull();
+    expect(handle!.getElement().dataset.empty).toBe("false");
+
+    handle!.setMarkdown("");
+    expect(handle!.getElement().dataset.empty).toBe("true");
+    dispose();
+  });
+
   it("keeps appending a one-hour live transcript without rebuilding speaker history", async () => {
     const root = document.createElement("div");
     document.body.append(root);

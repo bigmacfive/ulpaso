@@ -4,6 +4,23 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-15
+
+### Added
+
+- Added continuous transcript scrolling so the newest live speech remains visible while recording.
+- Added native microphone-permission status, request, and System Settings recovery controls.
+- Added guarded meeting prompts that stay suppressed after the user edits, invokes a command, or dismisses a prompt.
+- Added stronger speaker reconciliation so partial diarization cannot merge or drop canonical transcript text.
+- Added compact update notices, sidebar and theme refinements, capture diagnostics, and broader audio/transcription benchmarks.
+
+### Changed
+
+- Consolidated Ulpaso as a free MIT-licensed application with no account, payment, trial, or license-key gate.
+- Reduced the initial application bundle by downloading the pinned local runtime and models only after explicit setup consent.
+- Refined the DMG artwork and drag-to-Applications layout while preserving signed in-app updates from GitHub Releases.
+- Hardened meeting detection, multimonitor window targeting, capture generations, long-session audio alignment, worker recovery, and multilingual transcript validation.
+
 ## [0.2.4] - 2026-08-13
 
 ### Fixed
@@ -52,7 +69,7 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ### Added
 
-- Local-first WYSIWYG Markdown editing with GFM support.
+- Local WYSIWYG Markdown editing with GFM support.
 - On-device microphone and system-audio transcription with speaker organization.
 - English, Korean, and Japanese interfaces.
 - Draft recovery, recent documents, focus mode, command palette, and light/dark themes.

@@ -7,7 +7,9 @@ import DocumentSaveState from "./components/DocumentSaveState";
 import CommandPalette from "./components/CommandPalette";
 import DocumentConfirmationDialog, { type PendingDocumentAction } from "./components/DocumentConfirmationDialog";
 import MeetingSetupDialog from "./components/MeetingSetupDialog";
+import MeetingDetectionDialog from "./components/MeetingDetectionDialog";
 import SettingsPopover from "./components/SettingsPopover";
+import UpdateNotice, { type UpdateNoticePhase } from "./components/UpdateNotice";
 import { locale, t } from "./i18n";
 import { Icon } from "./icons";
 import KukuEditor, { type KukuEditorHandle } from "./editor/KukuEditor";
@@ -37,9 +39,12 @@ import {
   MEETING_DETECTION_STORAGE_KEY,
   MeetingDetectionPromptCoordinator,
   readMeetingDetectionPreference,
+  type MeetingCaptureTarget,
   type MeetingDetectionSnapshot,
 } from "./meeting/detection_prompt";
+import { EDITOR_FULL_WIDTH_STORAGE_KEY, readEditorFullWidthPreference } from "./editor_width";
 import { appShortcutAction, shortcutHint, type AppShortcutAction } from "./shortcuts";
+import { applyAppTheme, readStoredTheme } from "./theme";
 
 type FileDocument = { path: string | null; content: string };
 type OutlineItem = { id: string; text: string; level: number };
@@ -57,10 +62,14 @@ type MeetingState = {
 type MeetingTranscript = MeetingEditorTranscript;
 type ToastTone = "success" | "error" | "info";
 type ToastState = { message: string; tone: ToastTone };
-type PendingMeetingStart = { microphoneOnly: boolean; systemOnly: boolean };
-type MeetingNotificationAction = {
-  action: "start" | "dismiss" | "open" | "failed" | "permission-denied";
+type PendingMeetingStart = {
+  microphoneOnly: boolean;
+  systemOnly: boolean;
+  captureBundleId?: string;
+  captureWindowId?: number;
 };
+type AppUpdate = { version: string };
+type UpdateProgress = { downloaded: number; total: number | null };
 type MicrophonePermission = "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
 
 const IDLE_MEETING: MeetingState = {
@@ -88,7 +97,6 @@ const commandDefinitions = [
   { icon: "save", labelKey: "command.saveAs" as const, hint: shortcutHint("saveAs"), action: "saveAs" },
   { icon: "settings", labelKey: "shortcut.settings" as const, hint: shortcutHint("settings"), action: "settings" },
   { icon: "sidebar", labelKey: "shortcut.sidebar" as const, hint: shortcutHint("sidebar"), action: "sidebar" },
-  { icon: "focus", labelKey: "command.focus" as const, hint: shortcutHint("focus"), action: "focus" },
   { icon: "mic", labelKey: "shortcut.meeting" as const, hint: shortcutHint("meeting"), action: "meeting" },
   { icon: "moon", labelKey: "command.theme" as const, hint: "", action: "theme" },
 ];
@@ -113,10 +121,11 @@ export default function App() {
   let saveTimer: number | undefined;
   let toastTimer: number | undefined;
   let meetingTimer: number | undefined;
+  let allowWindowClose = false;
   let unlistenMeetingState: UnlistenFn | undefined;
   let unlistenMeetingTranscript: UnlistenFn | undefined;
   let unlistenMeetingDetection: UnlistenFn | undefined;
-  let unlistenMeetingNotificationAction: UnlistenFn | undefined;
+  let unlistenUpdateProgress: UnlistenFn | undefined;
   let unlistenCloseRequested: UnlistenFn | undefined;
   let meetingErrorPopoverRef: HTMLDivElement | undefined;
   let meetingStateInitialized = false;
@@ -126,8 +135,7 @@ export default function App() {
   const [dirty, setDirty] = createSignal(Boolean(recoveredDraft));
   const [saving, setSaving] = createSignal(false);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
-  const [focusMode, setFocusMode] = createSignal(false);
-  const [theme, setTheme] = createSignal<"light" | "dark">((localStorage.getItem("ulpaso-theme") as "light" | "dark") || "light");
+  const [theme, setTheme] = createSignal<"light" | "dark">(readStoredTheme(localStorage.getItem("ulpaso-theme")));
   const [sideTab, setSideTab] = createSignal<"files" | "outline">("files");
   const [outline, setOutline] = createSignal<OutlineItem[]>([]);
   const [recent, setRecent] = createSignal<RecentDocument[]>(loadRecentDocuments());
@@ -147,15 +155,28 @@ export default function App() {
       localStorage.getItem(LEGACY_MEETING_AUTO_START_STORAGE_KEY),
     ),
   );
+  const [editorFullWidth, setEditorFullWidth] = createSignal(
+    readEditorFullWidthPreference(localStorage.getItem(EDITOR_FULL_WIDTH_STORAGE_KEY)),
+  );
+  const [detectedMeeting, setDetectedMeeting] = createSignal<MeetingDetectionSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [microphonePermission, setMicrophonePermission] = createSignal<MicrophonePermission>("unavailable");
   const [microphonePermissionBusy, setMicrophonePermissionBusy] = createSignal(false);
   const [pendingDocumentAction, setPendingDocumentAction] = createSignal<PendingDocumentAction | null>(null);
+  const [appUpdate, setAppUpdate] = createSignal<AppUpdate | null>(null);
+  const [updatePhase, setUpdatePhase] = createSignal<UpdateNoticePhase>("available");
+  const [updateProgress, setUpdateProgress] = createSignal<number | null>(null);
   const isNative = "__TAURI_INTERNALS__" in window;
   const meetingEditorBridge = new MeetingEditorBridge(meetingTitle);
-  const meetingDetectionCoordinator = new MeetingDetectionPromptCoordinator();
+  const meetingDetectionPrompt = new MeetingDetectionPromptCoordinator();
 
-  const commands = createMemo(() => commandDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })));
+  const sidebarVisible = createMemo(() => sidebarOpen() && !zen());
+  const commands = createMemo(() => commandDefinitions.map((item) => ({
+    ...item,
+    label: item.action === "sidebar"
+      ? t(sidebarVisible() ? "sidebar.close" : "sidebar.open")
+      : t(item.labelKey),
+  })));
   const filteredCommands = createMemo(() => {
     const q = paletteQuery().trim().toLowerCase();
     return q ? commands().filter((item) => item.label.toLowerCase().includes(q)) : commands();
@@ -186,19 +207,17 @@ export default function App() {
   });
 
   onMount(() => {
-    document.documentElement.dataset.theme = theme();
+    void applyAppTheme(theme());
     window.addEventListener("keydown", handleShortcut);
     window.addEventListener("beforeunload", handleBeforeUnload);
     meetingTimer = window.setInterval(() => setMeetingNow(Date.now()), 1000);
     if (recoveredDraft) showToast(t("document.restored"), "info", 3200);
     if (isNative) {
-      void getCurrentWindow().onCloseRequested(() => {
-        // macOS keeps the process alive and hides the window in the Rust
-        // lifecycle handler. Preserve the draft without showing a hidden
-        // discard dialog; Command-Q remains the explicit quit action.
-        if (dirty() && currentMarkdown.trim()) {
-          persistRecoveryDraft(currentMarkdown, filePath());
-        }
+      void getCurrentWindow().onCloseRequested((event) => {
+        if (allowWindowClose || !dirty() || !currentMarkdown.trim()) return;
+        event.preventDefault();
+        persistRecoveryDraft(currentMarkdown, filePath());
+        setPendingDocumentAction({ kind: "close" });
       }).then((unlisten) => {
         unlistenCloseRequested = unlisten;
       });
@@ -219,11 +238,17 @@ export default function App() {
       }).then((unlisten) => {
         unlistenMeetingDetection = unlisten;
       });
-      void listen<MeetingNotificationAction>("meeting://notification-action", (event) => {
-        void handleMeetingNotificationAction(event.payload);
+      void listen<UpdateProgress>("update://progress", (event) => {
+        const { downloaded, total } = event.payload;
+        setUpdateProgress(total && total > 0 ? Math.min(1, downloaded / total) : null);
       }).then((unlisten) => {
-        unlistenMeetingNotificationAction = unlisten;
+        unlistenUpdateProgress = unlisten;
       });
+      void invoke<AppUpdate | null>("update_check")
+        .then((update) => {
+          if (update?.version) setAppUpdate(update);
+        })
+        .catch(() => undefined);
       void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
         .then((snapshot) => void handleMeetingDetection(snapshot))
         .catch(() => undefined);
@@ -239,12 +264,24 @@ export default function App() {
     unlistenMeetingState?.();
     unlistenMeetingTranscript?.();
     unlistenMeetingDetection?.();
-    unlistenMeetingNotificationAction?.();
+    unlistenUpdateProgress?.();
     unlistenCloseRequested?.();
   });
 
   function isMeetingBusy() {
     return !["idle", "error"].includes(meeting().phase);
+  }
+
+  async function installAppUpdate() {
+    if (!appUpdate() || updatePhase() === "installing") return;
+    setUpdatePhase("installing");
+    setUpdateProgress(null);
+    try {
+      await invoke("update_install");
+    } catch {
+      setUpdatePhase("error");
+      setUpdateProgress(null);
+    }
   }
 
   function meetingTitle() {
@@ -262,7 +299,7 @@ export default function App() {
       setMeetingErrorOpen(true);
     } else if (next.phase !== "idle") {
       setMeetingErrorOpen(false);
-      if (isNative) void invoke("meeting_notification_clear");
+      setDetectedMeeting(null);
     }
     if (next.phase === "recording" && !meetingResources()?.ready) void refreshMeetingResources();
     flushPendingMeetingDetection();
@@ -280,62 +317,52 @@ export default function App() {
       pendingMeetingDetection = snapshot;
       return;
     }
-    const action = meetingDetectionCoordinator.observe(snapshot, {
+    const action = meetingDetectionPrompt.observe(snapshot, {
       enabled: meetingDetectionEnabled(),
       busy: isMeetingBusy(),
     });
-    if (!snapshot.detected && isNative) void invoke("meeting_notification_clear");
     if (action !== "prompt") return;
 
+    // Render the decision before asking macOS for focus. Focus can be denied
+    // by a system-owned dialog; the prompt must still be waiting when the user
+    // returns to Ulpaso.
+    setDetectedMeeting(snapshot);
     try {
-      const appName = snapshot.appName || t("meeting.detectedApp");
-      await invoke("meeting_notification_show", {
-        title: t("meeting.detectionPromptTitle", { app: appName }),
-        body: t("meeting.detectionPromptBody"),
-        startTitle: t("meeting.detectionPromptStart"),
-        dismissTitle: t("meeting.detectionPromptDismiss"),
-      });
-    } catch (error) {
-      showToast(readableError(error, t("meeting.detectionPromptFailed")), "error", 4200);
-    }
-  }
-
-  async function revealMainWindow() {
-    const currentWindow = getCurrentWindow();
-    await currentWindow.show();
-    await currentWindow.setFocus();
-  }
-
-  async function handleMeetingNotificationAction(payload: MeetingNotificationAction) {
-    if (payload.action === "dismiss") return;
-    try {
-      if (payload.action === "open") {
-        await revealMainWindow();
-        return;
-      }
-      if (payload.action !== "start" || isMeetingBusy()) return;
-
-      await invoke("meeting_notification_clear");
-      const status = meetingResources() ?? await refreshMeetingResources();
-      if (!status?.ready && (!status?.diskSpaceSufficient || !hasMeetingResourceConsent())) {
-        await revealMainWindow();
-      }
-      await toggleMeeting();
-    } catch (error) {
-      showToast(readableError(error, t("meeting.startFailed")), "error", 4200);
-    }
+      const currentWindow = getCurrentWindow();
+      await currentWindow.show();
+      await currentWindow.setFocus();
+    } catch { /* Keep the rendered prompt available for the next app focus. */ }
   }
 
   function toggleMeetingDetection() {
     const next = !meetingDetectionEnabled();
     setMeetingDetectionEnabled(next);
     localStorage.setItem(MEETING_DETECTION_STORAGE_KEY, String(next));
-    if (!next && isNative) void invoke("meeting_notification_clear");
+    if (!next) setDetectedMeeting(null);
     if (next && isNative) {
       void invoke<MeetingDetectionSnapshot>("meeting_detection_status")
         .then((snapshot) => void handleMeetingDetection(snapshot))
         .catch(() => undefined);
     }
+  }
+
+  function toggleEditorFullWidth() {
+    const next = !editorFullWidth();
+    setEditorFullWidth(next);
+    localStorage.setItem(EDITOR_FULL_WIDTH_STORAGE_KEY, String(next));
+  }
+
+  function confirmDetectedMeeting() {
+    const snapshot = detectedMeeting();
+    if (!snapshot) return;
+    setDetectedMeeting(null);
+    void toggleMeeting(
+      false,
+      false,
+      false,
+      snapshot.bundleId ?? undefined,
+      snapshot.windowId ?? undefined,
+    );
   }
 
   function handleMeetingTranscript(payload: MeetingTranscript) {
@@ -403,17 +430,20 @@ export default function App() {
   async function ensureMicrophonePermission(systemOnly: boolean): Promise<boolean> {
     if (systemOnly) return true;
     let status = await refreshMicrophonePermission();
-    if (status === "not-determined") {
-      await revealMainWindow();
-      status = await requestMicrophonePermission();
-    }
+    if (status === "not-determined") status = await requestMicrophonePermission();
     if (status === "authorized") return true;
     showToast(t("settings.microphoneDenied"), "error", 4200);
     if (status === "denied" || status === "restricted") await openMicrophoneSettings();
     return false;
   }
 
-  async function toggleMeeting(microphoneOnly = false, systemOnly = false, disclosed = false) {
+  async function toggleMeeting(
+    microphoneOnly = false,
+    systemOnly = false,
+    disclosed = false,
+    captureBundleId?: string,
+    captureWindowId?: number,
+  ) {
     if (!isNative) { showToast(t("meeting.desktopOnly"), "info"); return; }
     try {
       if (["recording", "permission"].includes(meeting().phase)) {
@@ -433,12 +463,38 @@ export default function App() {
       if (!disclosed) {
         const status = meetingResources() ?? await refreshMeetingResources();
         if (!status?.ready && (!status?.diskSpaceSufficient || !hasMeetingResourceConsent())) {
-          setPendingMeetingStart({ microphoneOnly, systemOnly });
+          setPendingMeetingStart({
+            microphoneOnly,
+            systemOnly,
+            captureBundleId,
+            captureWindowId,
+          });
           return;
         }
       }
       setMeetingErrorOpen(false);
-      await invoke("meeting_start", { microphoneOnly, systemOnly });
+      // A display hint has no meaning in microphone-only mode. Clear even an
+      // inherited hint so retries can never accidentally couple mic capture to
+      // a meeting window.
+      let resolvedCaptureBundleId = microphoneOnly ? undefined : captureBundleId;
+      let resolvedCaptureWindowId = microphoneOnly ? undefined : captureWindowId;
+      if (!microphoneOnly && !resolvedCaptureBundleId) {
+        try {
+          const target = await invoke<MeetingCaptureTarget | null>("meeting_detection_capture_target");
+          resolvedCaptureBundleId = target?.bundleId || undefined;
+          resolvedCaptureWindowId = target?.windowId || undefined;
+        } catch {
+          // Detection is an optional targeting hint. Preserve ordinary system
+          // capture when the detector is unavailable or no meeting is live.
+        }
+      }
+      if (!resolvedCaptureBundleId) resolvedCaptureWindowId = undefined;
+      await invoke("meeting_start", {
+        microphoneOnly,
+        systemOnly,
+        captureBundleId: resolvedCaptureBundleId,
+        captureWindowId: resolvedCaptureWindowId,
+      });
     } catch (error) {
       showToast(readableError(error, t("meeting.startFailed")), "error", 4200);
     }
@@ -449,7 +505,13 @@ export default function App() {
     if (!start) return;
     saveMeetingResourceConsent();
     setPendingMeetingStart(null);
-    void toggleMeeting(start.microphoneOnly, start.systemOnly, true);
+    void toggleMeeting(
+      start.microphoneOnly,
+      start.systemOnly,
+      true,
+      start.captureBundleId,
+      start.captureWindowId,
+    );
   }
 
   function meetingResourceDescription() {
@@ -625,7 +687,13 @@ export default function App() {
     setPendingDocumentAction(null);
     if (!action) return;
     if (action.kind === "new") newDocument();
-    else void openDocument(action.path);
+    else if (action.kind === "open") void openDocument(action.path);
+    else {
+      clearRecoveryDraft();
+      setDirty(false);
+      allowWindowClose = true;
+      void getCurrentWindow().close();
+    }
   }
 
   async function saveThenContinue() {
@@ -634,8 +702,18 @@ export default function App() {
 
   function toggleTheme() {
     const next = theme() === "light" ? "dark" : "light";
-    setTheme(next); document.documentElement.dataset.theme = next;
+    setTheme(next); void applyAppTheme(next);
     localStorage.setItem("ulpaso-theme", next);
+  }
+
+  function toggleSidebar() {
+    if (sidebarVisible()) {
+      setSidebarOpen(false);
+      return;
+    }
+
+    setZen(false);
+    setSidebarOpen(true);
   }
 
   function runAction(action: string) {
@@ -645,8 +723,7 @@ export default function App() {
     else if (action === "save") void save(false);
     else if (action === "saveAs") void save(true);
     else if (action === "settings") { setMeetingErrorOpen(false); setSettingsOpen(true); }
-    else if (action === "sidebar") setSidebarOpen(!sidebarOpen());
-    else if (action === "focus") setFocusMode(!focusMode());
+    else if (action === "sidebar") toggleSidebar();
     else if (action === "meeting") void toggleMeeting();
     else if (action === "theme") toggleTheme();
   }
@@ -691,8 +768,7 @@ export default function App() {
       closePalette();
       setMeetingErrorOpen(false);
       setSettingsOpen((open) => !open);
-    } else if (action === "sidebar") setSidebarOpen((open) => !open);
-    else if (action === "focus") setFocusMode((active) => !active);
+    } else if (action === "sidebar") toggleSidebar();
     else if (action === "meeting") { setSettingsOpen(false); void toggleMeeting(); }
     else if (action === "dismiss") {
       closePalette();
@@ -701,6 +777,7 @@ export default function App() {
       setZen(false);
       setPendingDocumentAction(null);
       setPendingMeetingStart(null);
+      setDetectedMeeting(null);
     }
   }
 
@@ -716,9 +793,9 @@ export default function App() {
     <main
       class="app-shell"
       classList={{
-        "focus-mode": focusMode(),
         "zen-mode": zen(),
-        "sidebar-open": sidebarOpen() && !focusMode(),
+        "sidebar-open": sidebarVisible(),
+        "editor-full-width": editorFullWidth(),
       }}
     >
       <TitleBar
@@ -761,10 +838,10 @@ export default function App() {
           </Show>
           <div class="titlebar-button-group" role="group" aria-label={t("sidebar.windowTools")}>
             <Button
-              icon={sidebarOpen() ? "sidebarCollapse" : "sidebarExpand"}
-              title={`${sidebarOpen() ? t("sidebar.close") : t("sidebar.open")} (⌘ \\)`}
-              active={sidebarOpen()}
-              onClick={() => { setSettingsOpen(false); setMeetingErrorOpen(false); setSidebarOpen(!sidebarOpen()); }}
+              icon={sidebarVisible() ? "sidebarCollapse" : "sidebarExpand"}
+              title={`${sidebarVisible() ? t("sidebar.close") : t("sidebar.open")} (⌘ \\)`}
+              active={sidebarVisible()}
+              onClick={() => { setSettingsOpen(false); setMeetingErrorOpen(false); toggleSidebar(); }}
             />
             <Button
               icon="settings"
@@ -783,16 +860,28 @@ export default function App() {
         </>}
       />
 
+      <Show when={appUpdate()}>{(update) =>
+        <UpdateNotice
+          version={update().version}
+          phase={updatePhase()}
+          progress={updateProgress()}
+          onDismiss={() => setAppUpdate(null)}
+          onInstall={() => void installAppUpdate()}
+        />
+      }</Show>
+
       <Show when={settingsOpen()}>
         <SettingsPopover
           theme={theme()}
           meetingDescription={meetingResourceDescription()}
           meetingDetectionEnabled={meetingDetectionEnabled()}
+          editorFullWidth={editorFullWidth()}
           microphonePermission={microphonePermission()}
           microphonePermissionBusy={microphonePermissionBusy()}
           onClose={() => setSettingsOpen(false)}
           onToggleTheme={toggleTheme}
           onToggleMeetingDetection={toggleMeetingDetection}
+          onToggleEditorFullWidth={toggleEditorFullWidth}
           onManageMicrophonePermission={() => void manageMicrophonePermission()}
         />
       </Show>
@@ -815,7 +904,7 @@ export default function App() {
       </Show>
 
       <div class="workspace">
-        <aside class="sidebar" classList={{ closed: !sidebarOpen() }}>
+        <aside class="sidebar" classList={{ closed: !sidebarVisible() }}>
           <div class="sidebar-header">
             <div class="sidebar-tabs">
               <button type="button" aria-pressed={sideTab() === "files"} classList={{ active: sideTab() === "files" }} onClick={() => setSideTab("files")}>{t("sidebar.files")}</button>
@@ -895,6 +984,14 @@ export default function App() {
           onConfirm={confirmMeetingSetup}
         />
       </Show>
+
+      <Show when={detectedMeeting()}>{(snapshot) =>
+        <MeetingDetectionDialog
+          appName={snapshot().appName || t("meeting.detectedApp")}
+          onCancel={() => setDetectedMeeting(null)}
+          onConfirm={confirmDetectedMeeting}
+        />
+      }</Show>
 
       <Show when={toast()}>{(item) => <div class="toast" classList={{ error: item().tone === "error", info: item().tone === "info" }} role={item().tone === "error" ? "alert" : "status"} aria-live="polite">
         <Icon name={item().tone === "error" ? "alert" : item().tone === "info" ? "info" : "check"} size={15} />

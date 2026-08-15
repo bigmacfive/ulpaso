@@ -30,9 +30,13 @@ mkdir "$mount_point"
 # create-dmg AppleScript succeeds. Reopen the image as writable and install a
 # known-good layout so release images always retain their artwork and icons.
 hdiutil convert "$dmg_path" -format UDRW -o "$writable_dmg" >/dev/null
-hdiutil attach -readwrite -noverify -noautoopen -nobrowse \
-  -mountpoint "$mount_point" "$writable_dmg" </dev/null >/dev/null
+printf 'Y\n' | hdiutil attach -readwrite -noverify -noautoopen -nobrowse \
+  -mountpoint "$mount_point" "$writable_dmg" >/dev/null
 mounted=1
+if [[ -f "$mount_point/.background/dmg-background.png" ]]; then
+  mv "$mount_point/.background/dmg-background.png" \
+    "$mount_point/.background/ulpaso-dmg-background.png"
+fi
 base64 -D -i "$layout_source" -o "$mount_point/.DS_Store"
 chmod 644 "$mount_point/.DS_Store"
 sync

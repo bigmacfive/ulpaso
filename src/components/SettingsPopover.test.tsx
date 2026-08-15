@@ -17,13 +17,15 @@ describe("SettingsPopover shortcut guide", () => {
     const dispose = render(() => (
       <SettingsPopover
         theme="light"
+        editorFullWidth={false}
         meetingDescription="Local models ready"
         meetingDetectionEnabled={true}
-        microphonePermission="authorized"
-        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleEditorFullWidth={vi.fn()}
         onToggleMeetingDetection={vi.fn()}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
         onManageMicrophonePermission={vi.fn()}
       />
     ), root);
@@ -50,13 +52,15 @@ describe("SettingsPopover shortcut guide", () => {
     const dispose = render(() => (
       <SettingsPopover
         theme="dark"
+        editorFullWidth={false}
         meetingDescription="로컬 모델 준비됨"
         meetingDetectionEnabled={false}
-        microphonePermission="denied"
-        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleEditorFullWidth={vi.fn()}
         onToggleMeetingDetection={vi.fn()}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
         onManageMicrophonePermission={vi.fn()}
       />
     ), root);
@@ -69,25 +73,27 @@ describe("SettingsPopover shortcut guide", () => {
     dispose();
   });
 
-  it("exposes meeting detection prompts as an explicit on/off control", () => {
+  it("exposes meeting detection as an explicit on/off control", () => {
     const root = document.createElement("div");
     document.body.append(root);
     const onToggleMeetingDetection = vi.fn();
     const dispose = render(() => (
       <SettingsPopover
         theme="light"
+        editorFullWidth={false}
         meetingDescription="Local models ready"
         meetingDetectionEnabled={true}
-        microphonePermission="not-determined"
-        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleEditorFullWidth={vi.fn()}
         onToggleMeetingDetection={onToggleMeetingDetection}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
         onManageMicrophonePermission={vi.fn()}
       />
     ), root);
 
-    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection notifications"]')!;
+    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Meeting detection"]')!;
     const [on, off] = Array.from(group.querySelectorAll<HTMLButtonElement>("button"));
     expect(on.getAttribute("aria-pressed")).toBe("true");
     expect(off.getAttribute("aria-pressed")).toBe("false");
@@ -96,30 +102,33 @@ describe("SettingsPopover shortcut guide", () => {
     dispose();
   });
 
-  it("offers the native microphone request before linking to System Settings", () => {
+  it("switches between focused and full editor width", () => {
     const root = document.createElement("div");
     document.body.append(root);
-    const onManageMicrophonePermission = vi.fn();
+    const onToggleEditorFullWidth = vi.fn();
     const dispose = render(() => (
       <SettingsPopover
         theme="light"
+        editorFullWidth={false}
         meetingDescription="Local models ready"
         meetingDetectionEnabled={true}
-        microphonePermission="not-determined"
-        microphonePermissionBusy={false}
         onClose={vi.fn()}
         onToggleTheme={vi.fn()}
+        onToggleEditorFullWidth={onToggleEditorFullWidth}
         onToggleMeetingDetection={vi.fn()}
-        onManageMicrophonePermission={onManageMicrophonePermission}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
+        onManageMicrophonePermission={vi.fn()}
       />
     ), root);
 
-    const microphoneRow = root.querySelector<HTMLElement>(".settings-row-microphone")!;
-    expect(microphoneRow.textContent).toContain("Permission has not been requested");
-    const button = microphoneRow.querySelector<HTMLButtonElement>("button")!;
-    expect(button.textContent).toContain("Allow microphone");
-    button.click();
-    expect(onManageMicrophonePermission).toHaveBeenCalledOnce();
+    const group = root.querySelector<HTMLElement>('[role="group"][aria-label="Editor width"]')!;
+    const [focused, full] = Array.from(group.querySelectorAll<HTMLButtonElement>("button"));
+    expect(focused.getAttribute("aria-pressed")).toBe("true");
+    expect(full.getAttribute("aria-pressed")).toBe("false");
+    full.click();
+    expect(onToggleEditorFullWidth).toHaveBeenCalledOnce();
     dispose();
   });
+
 });

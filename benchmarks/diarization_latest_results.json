@@ -1,0 +1,193 @@
+{
+  "measuredAt": "2026-08-13",
+  "model": "mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16",
+  "modelRevision": "e23e6404bd9859e93edbf94a740eb1c7fc58f12e",
+  "threshold": 0.4,
+  "minDurationSeconds": 0.7,
+  "mergeGapSeconds": 0.24,
+  "evaluation": {
+    "frameSeconds": 0.08,
+    "collarSeconds": 0,
+    "speakerMapping": "global-one-to-one-permutation",
+    "overlapAware": true
+  },
+  "voxConverse": {
+    "sampleCount": 4,
+    "samples": [
+      {
+        "id": "bkwns",
+        "referenceSpeakerCount": 2,
+        "atomicBaselineSpeakerCount": 2,
+        "currentSpeakerCount": 2
+      },
+      {
+        "id": "szsyz",
+        "referenceSpeakerCount": 3,
+        "atomicBaselineSpeakerCount": 1,
+        "currentSpeakerCount": 3
+      },
+      {
+        "id": "gwtwd",
+        "referenceSpeakerCount": 4,
+        "atomicBaselineSpeakerCount": 4,
+        "currentSpeakerCount": 4
+      },
+      {
+        "id": "syiwe",
+        "referenceSpeakerCount": 3,
+        "atomicBaselineSpeakerCount": 3,
+        "currentSpeakerCount": 3
+      }
+    ],
+    "atomicBaseline": {
+      "microDer": 0.10627674750356633,
+      "macroJer": 0.29778416918067185
+    },
+    "current": {
+      "microDer": 0.10128388017118402,
+      "macroJer": 0.1960892836029575,
+      "miss": 0.07275320970042796,
+      "falseAlarm": 0.005706134094151213,
+      "confusion": 0.02282453637660485
+    },
+    "keySamples": {
+      "szsyz": {
+        "atomicBaselineSpeakerCount": 1,
+        "currentSpeakerCount": 3,
+        "atomicBaselineDer": 0.0949367088607595,
+        "currentDer": 0.07278481012658228,
+        "atomicBaselineJer": 0.6888888888888887,
+        "currentJer": 0.28210934657803147
+      },
+      "gwtwd": {
+        "referenceSpeakerCount": 4,
+        "currentSpeakerCount": 4,
+        "currentTurnCount": 10,
+        "currentDer": 0.20078226857887874,
+        "currentMiss": 0.15254237288135593,
+        "currentFalseAlarm": 0.010430247718383312,
+        "currentConfusion": 0.037809647979139505,
+        "speechCoverageRecall": 0.995405819295559
+      }
+    }
+  },
+  "silencePaddingInvariant": {
+    "durationsSeconds": [120, 240, 299],
+    "samples": [
+      {
+        "id": "bkwns",
+        "referenceSpeakerCount": 2,
+        "paddedSpeakerCounts": [2, 2, 2]
+      },
+      {
+        "id": "szsyz",
+        "referenceSpeakerCount": 3,
+        "paddedSpeakerCounts": [3, 3, 3]
+      },
+      {
+        "id": "gwtwd",
+        "referenceSpeakerCount": 4,
+        "paddedSpeakerCounts": [4, 4, 4]
+      },
+      {
+        "id": "syiwe",
+        "referenceSpeakerCount": 3,
+        "paddedSpeakerCounts": [3, 3, 3]
+      }
+    ]
+  },
+  "longMeetingAttribution": {
+    "metric": "canonical-word speaker attribution error against RTTM-turn ASR alignment proxy",
+    "sampleCount": 4,
+    "canonicalWords": 677,
+    "dominantBlockBaseline": {
+      "errors": 121,
+      "errorRate": 0.17872968980797637
+    },
+    "currentSentenceAllocation": {
+      "errors": 49,
+      "errorRate": 0.0723781388478582,
+      "additionalAsrCalls": 0,
+      "canonicalTextExact": true
+    },
+    "samples": [
+      {
+        "id": "bkwns",
+        "canonicalWords": 177,
+        "dominantErrors": 15,
+        "currentErrors": 0,
+        "canonicalTextExact": true,
+        "timestampsMonotonic": true
+      },
+      {
+        "id": "szsyz",
+        "canonicalWords": 166,
+        "dominantErrors": 8,
+        "currentErrors": 8,
+        "canonicalTextExact": true,
+        "timestampsMonotonic": true
+      },
+      {
+        "id": "gwtwd",
+        "canonicalWords": 143,
+        "dominantErrors": 23,
+        "currentErrors": 23,
+        "canonicalTextExact": true,
+        "timestampsMonotonic": true
+      },
+      {
+        "id": "syiwe",
+        "canonicalWords": 191,
+        "dominantErrors": 75,
+        "currentErrors": 18,
+        "canonicalTextExact": true,
+        "timestampsMonotonic": true
+      }
+    ]
+  },
+  "podcastFalsePositiveControls": {
+    "sampleCount": 4,
+    "samples": [
+      {
+        "id": "h7p-xSmMtg4",
+        "rawSpeakerCount": 2,
+        "rawTurnCount": 20,
+        "atomicBaselineSpeakerCount": 1,
+        "atomicBaselineTurnCount": 3,
+        "currentSpeakerCount": 1,
+        "currentTurnCount": 3,
+        "addedSpeakers": []
+      },
+      {
+        "id": "Ux-TMWnmntM",
+        "rawSpeakerCount": 2,
+        "rawTurnCount": 32,
+        "atomicBaselineSpeakerCount": 2,
+        "atomicBaselineTurnCount": 19,
+        "currentSpeakerCount": 2,
+        "currentTurnCount": 19,
+        "addedSpeakers": []
+      },
+      {
+        "id": "cSwaRkus1q4",
+        "rawSpeakerCount": 2,
+        "rawTurnCount": 38,
+        "atomicBaselineSpeakerCount": 2,
+        "atomicBaselineTurnCount": 25,
+        "currentSpeakerCount": 2,
+        "currentTurnCount": 25,
+        "addedSpeakers": []
+      },
+      {
+        "id": "vif8NQcjVf0",
+        "rawSpeakerCount": 1,
+        "rawTurnCount": 29,
+        "atomicBaselineSpeakerCount": 1,
+        "atomicBaselineTurnCount": 12,
+        "currentSpeakerCount": 1,
+        "currentTurnCount": 12,
+        "addedSpeakers": []
+      }
+    ]
+  }
+}

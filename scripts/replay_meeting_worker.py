@@ -20,6 +20,9 @@ import wave
 from pathlib import Path
 from typing import BinaryIO, Any
 
+from full_video_asr_benchmark import caption_events
+from podcast_asr_benchmark import edit_distance, word_units
+
 
 def write_frame(target: BinaryIO, kind: int, payload: bytes = b"") -> None:
     target.write(bytes((kind,)))
@@ -88,6 +91,64 @@ def markdown_from_final(title: str, event: dict[str, Any]) -> str:
     return "\n\n".join(parts).strip() + "\n"
 
 
+def score_final_event(
+    event: dict[str, Any],
+    subtitle_path: Path,
+    language: str,
+) -> dict[str, Any]:
+    """Score both the worker's canonical text and what the editor will save."""
+    captions = caption_events(subtitle_path)
+    reference_words = word_units(
+        " ".join(str(caption["text"]) for caption in captions),
+        language,
+    )
+    final_text = str(event.get("text", "") or "").strip()
+    segments = list(event.get("segments") or [])
+    document_text = " ".join(
+        str(segment.get("text", "") or "").strip()
+        for segment in segments
+        if str(segment.get("text", "") or "").strip()
+    ).strip() or final_text
+
+    def wer(text: str) -> tuple[float, int, int]:
+        hypothesis_words = word_units(text, language)
+        edits = edit_distance(reference_words, hypothesis_words)
+        return (
+            round(edits / max(1, len(reference_words)), 4),
+            edits,
+            len(hypothesis_words),
+        )
+
+    final_wer, final_edits, final_words = wer(final_text)
+    document_wer, document_edits, document_words = wer(document_text)
+    transcript_ends = [
+        float(segment["end"])
+        for segment in segments
+        if isinstance(segment, dict) and isinstance(segment.get("end"), (int, float))
+    ]
+    last_transcript_end = max(transcript_ends, default=None)
+    captioned_after_end = bool(captions) and (
+        last_transcript_end is None
+        or any(float(caption["midpoint"]) > last_transcript_end for caption in captions)
+    )
+    normalized_final = " ".join(final_text.split())
+    normalized_document = " ".join(document_text.split())
+    return {
+        "referenceWords": len(reference_words),
+        "continuousWer": final_wer,
+        "continuousWordEdits": final_edits,
+        "textWords": final_words,
+        "documentContinuousWer": document_wer,
+        "documentWordEdits": document_edits,
+        "documentWords": document_words,
+        "documentMatchesFinalText": normalized_document == normalized_final,
+        "lastTranscriptEndSeconds": (
+            round(last_transcript_end, 3) if last_transcript_end is not None else None
+        ),
+        "captionedSpeechAfterLastTranscript": captioned_after_end,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--python", type=Path, required=True)
@@ -97,6 +158,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--markdown", type=Path)
     parser.add_argument("--title", default="미팅 노트 · 전체 전사 검증")
+    parser.add_argument("--subtitle", type=Path)
+    parser.add_argument("--language", default="Korean")
     args = parser.parse_args()
 
     process = subprocess.Popen(
@@ -137,12 +200,18 @@ def main() -> None:
         if args.markdown:
             args.markdown.parent.mkdir(parents=True, exist_ok=True)
             args.markdown.write_text(markdown_from_final(args.title, final_event), "utf-8")
+        score = (
+            score_final_event(final_event, args.subtitle, args.language)
+            if args.subtitle is not None
+            else {}
+        )
         print(
             json.dumps(
                 {
                     "audioSeconds": round(sent_seconds, 3),
                     "textCharacters": len(str(final_event.get("text", ""))),
                     "segments": len(list(final_event.get("segments") or [])),
+                    **score,
                 },
                 ensure_ascii=False,
             ),

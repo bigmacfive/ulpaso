@@ -1,6 +1,7 @@
 {
   "measuredAt": "2026-08-05",
   "model": "mlx-community/Qwen3-ASR-0.6B-8bit",
+  "modelRevision": "89e96d92ba34aca20b3e29fb10cc284097d1219f",
   "audioSeconds": 719.986,
   "sampleCount": 6,
   "manualReferenceCount": 4,

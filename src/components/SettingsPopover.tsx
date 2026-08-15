@@ -7,11 +7,13 @@ interface SettingsPopoverProps {
   theme: "light" | "dark";
   meetingDescription: string;
   meetingDetectionEnabled: boolean;
+  editorFullWidth: boolean;
   microphonePermission: "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
   microphonePermissionBusy: boolean;
   onClose(): void;
   onToggleTheme(): void;
   onToggleMeetingDetection(): void;
+  onToggleEditorFullWidth(): void;
   onManageMicrophonePermission(): void;
 }
 
@@ -118,6 +120,23 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
             }</For>
           </div>
         </div>
+        <div class="settings-row">
+          <div><strong>{t("settings.editorWidth")}</strong><span>{t("settings.editorWidthDescription")}</span></div>
+          <div class="settings-segmented" role="group" aria-label={t("settings.editorWidth")}>
+            <button
+              type="button"
+              aria-pressed={!props.editorFullWidth}
+              classList={{ active: !props.editorFullWidth }}
+              onClick={() => props.editorFullWidth && props.onToggleEditorFullWidth()}
+            >{t("settings.editorWidthFocused")}</button>
+            <button
+              type="button"
+              aria-pressed={props.editorFullWidth}
+              classList={{ active: props.editorFullWidth }}
+              onClick={() => !props.editorFullWidth && props.onToggleEditorFullWidth()}
+            >{t("settings.editorWidthFull")}</button>
+          </div>
+        </div>
         <div class="settings-row settings-row-meeting">
           <div><strong>{t("settings.meeting")}</strong><span>{props.meetingDescription}</span></div>
           <div class="settings-meeting-controls">
@@ -135,17 +154,14 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
                 onClick={() => props.meetingDetectionEnabled && props.onToggleMeetingDetection()}
               >{t("settings.off")}</button>
             </div>
-            <span class="settings-meeting-detection-description">{t("settings.meetingDetectionDescription")}</span>
+            <span class="settings-meeting-auto-description">{t("settings.meetingDetectionDescription")}</span>
           </div>
         </div>
         <div class="settings-row settings-row-microphone">
           <div><strong>{t("settings.microphone")}</strong><span>{t(microphoneStatusKeys[props.microphonePermission])}</span></div>
-          <button
-            type="button"
-            class="settings-link"
-            disabled={props.microphonePermissionBusy || props.microphonePermission === "unavailable"}
-            onClick={props.onManageMicrophonePermission}
-          >{microphoneActionLabel()}<Icon name="externalLink" size={12} /></button>
+          <button type="button" class="settings-link" disabled={props.microphonePermissionBusy || props.microphonePermission === "unavailable"} onClick={props.onManageMicrophonePermission}>
+            {microphoneActionLabel()}<Icon name="externalLink" size={12} />
+          </button>
         </div>
         <div class="settings-row settings-row-shortcuts">
           <div><strong>{t("settings.shortcuts")}</strong><span>{t("settings.shortcutsDescription")}</span></div>

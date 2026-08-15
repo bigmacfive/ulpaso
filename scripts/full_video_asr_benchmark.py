@@ -59,7 +59,13 @@ def main() -> None:
     from mlx_qwen3_asr import Session
 
     sys.path.insert(0, str(args.worker_dir.resolve()))
-    from asr_worker import sanitize_stream_text, speech_activity_ratio, transcribe_meeting_audio
+    from asr_worker import (
+        DIARIZATION_THRESHOLD,
+        merge_transcript_text,
+        sanitize_stream_text,
+        speech_activity_ratio,
+        transcribe_meeting_audio,
+    )
 
     mx.set_cache_limit(512 * 1024 * 1024)
     audio, sample_rate = read_wav(args.audio)
@@ -81,7 +87,7 @@ def main() -> None:
                 audio[offset:offset + diar_chunk_samples],
                 diar_state,
                 sample_rate=sample_rate,
-                threshold=0.65,
+                threshold=DIARIZATION_THRESHOLD,
                 min_duration=0.64,
                 merge_gap=0.24,
             )
@@ -157,8 +163,20 @@ def main() -> None:
     reference_character_count = sum(row["referenceCharacters"] for row in rows)
     reference_word_count = sum(row["referenceWords"] for row in rows)
     continuous_reference_words = word_units(" ".join(row["reference"] for row in rows), args.language)
-    continuous_hypothesis_words = word_units(" ".join(row["transcript"] for row in rows), args.language)
-    continuous_word_edits = edit_distance(continuous_reference_words, continuous_hypothesis_words)
+    joined_hypothesis = " ".join(row["transcript"] for row in rows)
+    continuous_hypothesis = ""
+    for row in rows:
+        continuous_hypothesis = merge_transcript_text(
+            continuous_hypothesis,
+            row["transcript"],
+        )
+    joined_hypothesis_words = word_units(joined_hypothesis, args.language)
+    deduplicated_hypothesis_words = word_units(continuous_hypothesis, args.language)
+    joined_word_edits = edit_distance(continuous_reference_words, joined_hypothesis_words)
+    deduplicated_word_edits = edit_distance(
+        continuous_reference_words,
+        deduplicated_hypothesis_words,
+    )
     alignment_group_windows = 20
     grouped_character_edits = 0
     for offset in range(0, len(rows), alignment_group_windows):
@@ -171,12 +189,21 @@ def main() -> None:
         "audioSeconds": round(len(audio) / sample_rate, 3),
         "windowSeconds": args.window_seconds,
         "windowCount": len(rows),
+        "diarizationThreshold": DIARIZATION_THRESHOLD if args.diar_model else None,
         "referenceCharacters": reference_character_count,
         "referenceWords": reference_word_count,
         "cer": round(sum(row["characterEdits"] for row in rows) / max(1, reference_character_count), 4),
         "wer": round(sum(row["wordEdits"] for row in rows) / max(1, reference_word_count), 4),
-        "continuousWer": round(continuous_word_edits / max(1, len(continuous_reference_words)), 4),
-        "continuousWordEdits": continuous_word_edits,
+        "continuousWer": round(joined_word_edits / max(1, len(continuous_reference_words)), 4),
+        "continuousWordEdits": joined_word_edits,
+        "deduplicatedContinuousWer": round(
+            deduplicated_word_edits / max(1, len(continuous_reference_words)),
+            4,
+        ),
+        "deduplicatedBoundaryWords": max(
+            0,
+            len(joined_hypothesis_words) - len(deduplicated_hypothesis_words),
+        ),
         "groupedCer": round(grouped_character_edits / max(1, reference_character_count), 4),
         "alignmentGroupSeconds": args.window_seconds * alignment_group_windows,
         "meanWindowCer": round(statistics.mean(row["cer"] for row in rows), 4),

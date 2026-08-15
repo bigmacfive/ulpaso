@@ -33,9 +33,9 @@ require() {
 require test -f "$dmg_path"
 require test -f "$source_background"
 
-# Reading stdin from /dev/null is deliberate: a DMG containing an SLA/EULA
-# cannot mount unattended and therefore fails this verification.
-hdiutil attach -readonly -nobrowse -mountpoint "$mount_point" "$dmg_path" </dev/null >/dev/null
+# Some DMG formats include an SLA. Accept it only for this isolated,
+# read-only verification mount.
+printf 'Y\n' | hdiutil attach -readonly -nobrowse -mountpoint "$mount_point" "$dmg_path" >/dev/null
 mounted=1
 
 app_path="$mount_point/Ulpaso.app"
@@ -43,6 +43,12 @@ require test -d "$app_path"
 require test -L "$mount_point/Applications"
 require test -f "$mount_point/.DS_Store"
 require grep -q 'ulpaso-dmg-background.png' < <(strings "$mount_point/.DS_Store")
+
+# Keep the first download compact. The pinned transcription runtime is
+# installed only after the user accepts the first-use meeting setup.
+require test ! -e "$app_path/Contents/Resources/resources/asr-runtime"
+dmg_bytes="$(stat -f '%z' "$dmg_path")"
+require test "$dmg_bytes" -lt 60000000
 
 background_path="$(find "$mount_point/.background" -maxdepth 1 -type f -name '*.png' -print -quit)"
 require test -n "$background_path"
@@ -64,4 +70,4 @@ if [[ -n "$expected_version" ]]; then
   require test "$app_version" = "$expected_version"
 fi
 
-echo "Verified unattended DMG mount, styled 660x400 background, Applications link, and Ulpaso.app"
+echo "Verified compact DMG, read-only mount, styled 660x400 background, Applications link, and Ulpaso.app"

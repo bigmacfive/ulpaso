@@ -3,13 +3,11 @@ fn main() {
     {
         println!("cargo:rerun-if-changed=native/macos_audio_capture.mm");
         println!("cargo:rerun-if-changed=native/macos_meeting_detector.mm");
-        println!("cargo:rerun-if-changed=native/macos_meeting_notification.mm");
         println!("cargo:rerun-if-changed=native/macos_window_shadow.mm");
         cc::Build::new()
             .cpp(true)
             .file("native/macos_audio_capture.mm")
             .file("native/macos_meeting_detector.mm")
-            .file("native/macos_meeting_notification.mm")
             .file("native/macos_window_shadow.mm")
             .flag("-fobjc-arc")
             .flag("-fblocks")
@@ -26,7 +24,6 @@ fn main() {
             "Foundation",
             "QuartzCore",
             "ScreenCaptureKit",
-            "UserNotifications",
         ] {
             println!("cargo:rustc-link-lib=framework={framework}");
         }
