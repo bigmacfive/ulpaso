@@ -4,6 +4,14 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-15
+
+### Fixed
+
+- Added the hardened-runtime audio-input entitlement so macOS shows Ulpaso in Microphone privacy settings and presents the native consent prompt.
+- Dispatch the first AVFoundation microphone authorization request on the AppKit main queue.
+- Verify the usage description and signed audio-input entitlement before every published macOS release.
+
 ## [0.5.0] - 2026-08-15
 
 ### Added

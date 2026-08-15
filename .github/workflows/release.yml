@@ -66,6 +66,15 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: pnpm tauri:build
 
+      - name: Verify signed microphone access
+        run: |
+          APP_PATH="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -name 'Ulpaso.app' -print -quit)"
+          test -n "$APP_PATH"
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$APP_PATH/Contents/Info.plist"
+          codesign -d --entitlements :- "$APP_PATH" > "$RUNNER_TEMP/ulpaso-entitlements.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.device.audio-input' "$RUNNER_TEMP/ulpaso-entitlements.plist")" = "true"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
       - name: Finalize and sign install disk image
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}

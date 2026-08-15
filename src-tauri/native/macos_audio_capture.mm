@@ -301,20 +301,25 @@ extern "C" int ulpaso_microphone_authorization_status() {
 }
 
 extern "C" void ulpaso_microphone_request_permission(void (*callback)(int)) {
-  AVAuthorizationStatus status =
-      [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
-  if (status != AVAuthorizationStatusNotDetermined) {
-    if (callback) callback(MicrophoneAuthorizationCode(status));
-    return;
-  }
-
-  [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio
-                           completionHandler:^(BOOL granted) {
-    (void)granted;
-    AVAuthorizationStatus resolved =
+  // Tauri commands run away from AppKit's main queue. Dispatch the initial
+  // AVFoundation authorization request to the main queue so macOS can attach
+  // the consent sheet to the signed application reliably.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    AVAuthorizationStatus status =
         [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
-    if (callback) callback(MicrophoneAuthorizationCode(resolved));
-  }];
+    if (status != AVAuthorizationStatusNotDetermined) {
+      if (callback) callback(MicrophoneAuthorizationCode(status));
+      return;
+    }
+
+    [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio
+                             completionHandler:^(BOOL granted) {
+      (void)granted;
+      AVAuthorizationStatus resolved =
+          [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+      if (callback) callback(MicrophoneAuthorizationCode(resolved));
+    }];
+  });
 }
 
 @interface UlpasoCapture : NSObject <SCStreamDelegate, SCStreamOutput>
