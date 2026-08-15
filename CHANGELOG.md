@@ -4,6 +4,12 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-08-15
+
+### Fixed
+
+- Keep provisional streaming diarization from showing third or fourth speaker labels before the bounded final pass verifies the real speaker count.
+
 ## [0.5.3] - 2026-08-15
 
 ### Fixed
