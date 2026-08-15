@@ -10,11 +10,14 @@ interface SettingsPopoverProps {
   editorFullWidth: boolean;
   microphonePermission: "not-determined" | "authorized" | "denied" | "restricted" | "unavailable";
   microphonePermissionBusy: boolean;
+  localDataRemovalBusy: boolean;
+  localDataRemovalDisabled: boolean;
   onClose(): void;
   onToggleTheme(): void;
   onToggleMeetingDetection(): void;
   onToggleEditorFullWidth(): void;
   onManageMicrophonePermission(): void;
+  onRemoveLocalMeetingData(): void;
 }
 
 const shortcutGroupColumns = [
@@ -83,6 +86,7 @@ function ShortcutGuideTrigger() {
 }
 
 export default function SettingsPopover(props: SettingsPopoverProps) {
+  const [localDataRemovalArmed, setLocalDataRemovalArmed] = createSignal(false);
   const microphoneActionLabel = () => {
     if (props.microphonePermissionBusy) return t("settings.microphoneRequesting");
     if (props.microphonePermission === "authorized") return t("settings.microphoneAllowed");
@@ -161,6 +165,29 @@ export default function SettingsPopover(props: SettingsPopoverProps) {
           <div><strong>{t("settings.microphone")}</strong><span>{t(microphoneStatusKeys[props.microphonePermission])}</span></div>
           <button type="button" class="settings-link" disabled={props.microphonePermissionBusy || props.microphonePermission === "unavailable"} onClick={props.onManageMicrophonePermission}>
             {microphoneActionLabel()}<Icon name="externalLink" size={12} />
+          </button>
+        </div>
+        <div class="settings-row settings-row-local-data">
+          <div><strong>{t("settings.localData")}</strong><span>{t("settings.localDataDescription")}</span></div>
+          <button
+            type="button"
+            class="settings-link settings-link-danger"
+            disabled={props.localDataRemovalBusy || props.localDataRemovalDisabled}
+            onBlur={() => setLocalDataRemovalArmed(false)}
+            onClick={() => {
+              if (!localDataRemovalArmed()) {
+                setLocalDataRemovalArmed(true);
+                return;
+              }
+              setLocalDataRemovalArmed(false);
+              props.onRemoveLocalMeetingData();
+            }}
+          >
+            {props.localDataRemovalBusy
+              ? t("settings.localDataRemoving")
+              : localDataRemovalArmed()
+                ? t("settings.localDataConfirm")
+                : t("settings.localDataRemove")}
           </button>
         </div>
         <div class="settings-row settings-row-shortcuts">

@@ -77,6 +77,8 @@ Ulpaso currently requires:
 
 Download the DMG, move Ulpaso to Applications, and open it normally. Current releases include checksums and a signed, notarized, stapled macOS build.
 
+Before moving Ulpaso to the Trash, open **Settings → Local transcription data** and choose **Remove** twice. This deletes the downloaded runtime, speech and speaker models, and retained recovery audio; Markdown documents remain untouched in the folders where you saved them.
+
 The editor UI can run in a browser on other platforms, but native saving, system-audio capture, meeting detection, and transcription require the macOS desktop app.
 
 <a id="build-from-source"></a>

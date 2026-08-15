@@ -5,7 +5,7 @@ use audio::{
 };
 use chrono::Utc;
 use recovery::repair_recovery_wav_headers;
-use resources::MeetingResourceStatus;
+use resources::{MeetingResourceRemoval, MeetingResourceStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -186,6 +186,24 @@ impl MeetingController {
             .app_data_dir()
             .map_err(|error| format!("Could not locate the app data folder: {error}"))?;
         Ok(resources::inspect(&resource_dir, &app_data))
+    }
+
+    pub fn remove_local_data(&self) -> Result<MeetingResourceRemoval, String> {
+        let active = self
+            .inner
+            .lock()
+            .map_err(|_| "Could not inspect the meeting state".to_string())?
+            .active
+            .is_some();
+        if active {
+            return Err("Finish the current meeting before removing transcription data".into());
+        }
+        let app_data = self
+            .app
+            .path()
+            .app_data_dir()
+            .map_err(|error| format!("Could not locate the app data folder: {error}"))?;
+        resources::remove_downloaded(&app_data)
     }
 
     pub fn start(
@@ -1380,6 +1398,13 @@ pub fn meeting_resources(
     controller: tauri::State<'_, MeetingController>,
 ) -> Result<MeetingResourceStatus, String> {
     controller.resources()
+}
+
+#[tauri::command]
+pub fn meeting_remove_local_data(
+    controller: tauri::State<'_, MeetingController>,
+) -> Result<MeetingResourceRemoval, String> {
+    controller.remove_local_data()
 }
 
 #[tauri::command]

@@ -5,9 +5,16 @@ import { render } from "solid-js/web";
 import { setLocale } from "../i18n";
 import SettingsPopover from "./SettingsPopover";
 
+const localDataProps = {
+  localDataRemovalBusy: false,
+  localDataRemovalDisabled: false,
+  onRemoveLocalMeetingData: vi.fn(),
+};
+
 afterEach(() => {
   setLocale("en");
   document.body.replaceChildren();
+  vi.clearAllMocks();
 });
 
 describe("SettingsPopover shortcut guide", () => {
@@ -16,6 +23,7 @@ describe("SettingsPopover shortcut guide", () => {
     document.body.append(root);
     const dispose = render(() => (
       <SettingsPopover
+        {...localDataProps}
         theme="light"
         editorFullWidth={false}
         meetingDescription="Local models ready"
@@ -51,6 +59,7 @@ describe("SettingsPopover shortcut guide", () => {
     document.body.append(root);
     const dispose = render(() => (
       <SettingsPopover
+        {...localDataProps}
         theme="dark"
         editorFullWidth={false}
         meetingDescription="로컬 모델 준비됨"
@@ -79,6 +88,7 @@ describe("SettingsPopover shortcut guide", () => {
     const onToggleMeetingDetection = vi.fn();
     const dispose = render(() => (
       <SettingsPopover
+        {...localDataProps}
         theme="light"
         editorFullWidth={false}
         meetingDescription="Local models ready"
@@ -108,6 +118,7 @@ describe("SettingsPopover shortcut guide", () => {
     const onToggleEditorFullWidth = vi.fn();
     const dispose = render(() => (
       <SettingsPopover
+        {...localDataProps}
         theme="light"
         editorFullWidth={false}
         meetingDescription="Local models ready"
@@ -131,4 +142,35 @@ describe("SettingsPopover shortcut guide", () => {
     dispose();
   });
 
+  it("requires a second explicit click before deleting models and recovery audio", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const onRemoveLocalMeetingData = vi.fn();
+    const dispose = render(() => (
+      <SettingsPopover
+        {...localDataProps}
+        onRemoveLocalMeetingData={onRemoveLocalMeetingData}
+        theme="light"
+        editorFullWidth={false}
+        meetingDescription="Local models ready"
+        meetingDetectionEnabled={true}
+        onClose={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onToggleEditorFullWidth={vi.fn()}
+        onToggleMeetingDetection={vi.fn()}
+        microphonePermission="authorized"
+        microphonePermissionBusy={false}
+        onManageMicrophonePermission={vi.fn()}
+      />
+    ), root);
+
+    const button = root.querySelector<HTMLButtonElement>(".settings-link-danger")!;
+    button.click();
+    expect(onRemoveLocalMeetingData).not.toHaveBeenCalled();
+    expect(button.textContent).toContain("Remove models & audio");
+
+    button.click();
+    expect(onRemoveLocalMeetingData).toHaveBeenCalledOnce();
+    dispose();
+  });
 });

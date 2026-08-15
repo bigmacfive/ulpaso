@@ -4,6 +4,16 @@ All notable changes to Ulpaso will be documented in this file. The format follow
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-08-15
+
+### Fixed
+
+- Trust the bounded final diarization pass when it reduces noisy four-slot live output to two or more stable speakers, and compact sparse speaker numbers before writing Markdown.
+
+### Added
+
+- Added a two-step Settings action that removes downloaded transcription models, runtime files, tools, caches, and retained recovery audio before uninstalling Ulpaso.
+
 ## [0.5.2] - 2026-08-15
 
 ### Fixed

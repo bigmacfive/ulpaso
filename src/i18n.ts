@@ -43,6 +43,13 @@ const en = {
   "settings.meetingDescription": "On-device transcription",
   "settings.meetingReady": "Local models ready",
   "settings.meetingDownload": "Downloads about {size} of AI models on first use",
+  "settings.localData": "Local transcription data",
+  "settings.localDataDescription": "Models and recovery audio left on this Mac",
+  "settings.localDataRemove": "Remove…",
+  "settings.localDataConfirm": "Remove models & audio",
+  "settings.localDataRemoving": "Removing…",
+  "settings.localDataRemoved": "Removed {size} of local transcription data",
+  "settings.localDataRemoveFailed": "Could not remove local transcription data",
   "settings.audioPermissions": "Audio permissions",
   "settings.microphone": "Microphone",
   "settings.microphoneStatus.not-determined": "Permission not requested yet",
@@ -202,6 +209,7 @@ const en = {
 type MessageKey = keyof typeof en;
 
 const ko: Partial<Record<MessageKey, string>> = {
+  "settings.localData": "로컬 전사 데이터", "settings.localDataDescription": "앱 삭제 전 모델과 복구 오디오를 함께 정리", "settings.localDataRemove": "삭제…", "settings.localDataConfirm": "모델과 오디오 삭제", "settings.localDataRemoving": "삭제 중…", "settings.localDataRemoved": "로컬 전사 데이터 {size}를 삭제했습니다", "settings.localDataRemoveFailed": "로컬 전사 데이터를 삭제하지 못했습니다",
   "settings.microphone": "마이크", "settings.microphoneStatus.not-determined": "아직 권한을 요청하지 않았습니다", "settings.microphoneStatus.authorized": "Ulpaso에 허용됨", "settings.microphoneStatus.denied": "시스템 설정에서 차단됨", "settings.microphoneStatus.restricted": "이 Mac에서 제한됨", "settings.microphoneStatus.unavailable": "Mac 앱에서 사용할 수 있습니다", "settings.microphoneAllow": "허용", "settings.microphoneAllowed": "허용됨", "settings.microphoneOpenSettings": "설정 열기", "settings.microphoneRequesting": "기다리는 중…", "settings.microphoneDenied": "회의 기록을 위해 마이크 접근을 허용해 주세요.",
   "settings.editorWidth": "편집기 너비", "settings.editorWidthDescription": "집중형 또는 창 전체로 사용", "settings.editorWidthFocused": "집중형", "settings.editorWidthFull": "전체 너비", "settings.meetingDetection": "회의 감지", "settings.meetingDetectionDescription": "회의 앱이 마이크를 사용하면 기록 여부를 묻습니다",
   "meeting.detectedTitle": "이 미팅을 기록할까요?", "meeting.detectedBody": "{app}에서 마이크를 사용 중입니다. 오디오와 전사 내용은 이 Mac에만 남습니다.", "meeting.detectedCancel": "지금은 안 함", "meeting.detectedConfirm": "기록 시작",
@@ -219,6 +227,7 @@ const ko: Partial<Record<MessageKey, string>> = {
 };
 
 const ja: Partial<Record<MessageKey, string>> = {
+  "settings.localData": "ローカル文字起こしデータ", "settings.localDataDescription": "アプリ削除前にモデルと復旧音声をまとめて削除", "settings.localDataRemove": "削除…", "settings.localDataConfirm": "モデルと音声を削除", "settings.localDataRemoving": "削除中…", "settings.localDataRemoved": "ローカル文字起こしデータ{size}を削除しました", "settings.localDataRemoveFailed": "ローカル文字起こしデータを削除できませんでした",
   "settings.microphone": "マイク", "settings.microphoneStatus.not-determined": "まだ権限を要求していません", "settings.microphoneStatus.authorized": "Ulpasoに許可済み", "settings.microphoneStatus.denied": "システム設定でブロック中", "settings.microphoneStatus.restricted": "このMacで制限されています", "settings.microphoneStatus.unavailable": "Macアプリで利用できます", "settings.microphoneAllow": "許可", "settings.microphoneAllowed": "許可済み", "settings.microphoneOpenSettings": "設定を開く", "settings.microphoneRequesting": "待機中…", "settings.microphoneDenied": "会議メモにはマイクへのアクセスを許可してください。",
   "settings.editorWidth": "エディター幅", "settings.editorWidthDescription": "集中表示またはウィンドウ全体を使用", "settings.editorWidthFocused": "集中", "settings.editorWidthFull": "全幅", "settings.meetingDetection": "会議の検出", "settings.meetingDetectionDescription": "会議アプリがマイクを使用すると記録するか確認します",
   "meeting.detectedTitle": "この会議を記録しますか？", "meeting.detectedBody": "{app}がマイクを使用しています。音声と文字起こしはこのMac内に残ります。", "meeting.detectedCancel": "今はしない", "meeting.detectedConfirm": "記録を開始",

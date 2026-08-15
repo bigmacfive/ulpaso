@@ -225,6 +225,40 @@ describe("KukuEditor meeting integration", () => {
     dispose();
   });
 
+  it("removes provisional third and fourth speakers after final cleanup", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    let handle: KukuEditorHandle | undefined;
+    const dispose = render(
+      () => (
+        <KukuEditor
+          initialMarkdown={"# 회의 문서\n"}
+          onReady={(next) => { handle = next; }}
+          onChange={() => undefined}
+        />
+      ),
+      root,
+    );
+    await Promise.resolve();
+
+    handle!.beginMeeting("session-over-split", "미팅 노트");
+    handle!.updateMeeting("session-over-split", "첫 발언", "", 1);
+    handle!.updateMeeting("session-over-split", "첫 발언 임시 둘", "", 2);
+    handle!.updateMeeting("session-over-split", "첫 발언 임시 둘 상대방", "", 3);
+    handle!.updateMeeting("session-over-split", "첫 발언 임시 둘 상대방 임시 넷", "", 4);
+    handle!.finalizeMeeting("session-over-split", [
+      { speaker: 1, text: "첫 발언 임시 둘" },
+      { speaker: 2, text: "상대방 임시 넷" },
+    ]);
+
+    const markdown = handle!.getMarkdown();
+    expect(markdown.match(/\*\*Speaker 1\*\*/g)).toHaveLength(1);
+    expect(markdown.match(/\*\*Speaker 2\*\*/g)).toHaveLength(1);
+    expect(markdown).not.toContain("**Speaker 3**");
+    expect(markdown).not.toContain("**Speaker 4**");
+    dispose();
+  });
+
   it("follows the live transcript tail until the user scrolls away", async () => {
     const root = document.createElement("div");
     document.body.append(root);

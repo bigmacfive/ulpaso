@@ -159,6 +159,7 @@ pub fn run() {
             updater::update_install,
             meeting::meeting_status,
             meeting::meeting_resources,
+            meeting::meeting_remove_local_data,
             meeting::meeting_prepare,
             meeting::meeting_start,
             meeting::meeting_stop,
