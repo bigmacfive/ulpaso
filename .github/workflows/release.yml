@@ -25,11 +25,17 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
       - name: Confirm Apple Silicon runner
         run: test "$(uname -m)" = "arm64"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          python -m pip install --disable-pip-version-check numpy==2.2.6
 
       - name: Verify source
         run: pnpm check
