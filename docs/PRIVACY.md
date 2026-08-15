@@ -39,6 +39,6 @@ Ulpaso also contacts GitHub Releases to check for signed application updates. Th
 
 ## Removing local data
 
-Before moving Ulpaso to the Trash, open **Settings → Local transcription data** and confirm **Remove models & audio**. Ulpaso then deletes the downloaded models, local runtime and tools, model caches, and retained meeting recovery audio from its application data directory. This action is unavailable while a meeting is active.
+Before moving Ulpaso to the Trash, open **Settings → Downloaded AI models** and confirm **Remove models & audio**. Ulpaso then deletes the downloaded speech-recognition and speaker-separation models, local runtime and tools, model caches, and retained meeting recovery audio from its application data directory. This action is unavailable while a meeting is active.
 
 macOS does not launch an application after it has been moved to the Trash, so the cleanup must be requested inside Ulpaso before removal. Saving or moving Markdown documents is independent of this action because the documents remain wherever you chose to store them.
