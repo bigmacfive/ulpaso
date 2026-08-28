@@ -129,6 +129,14 @@ test("ships complete share metadata for every public page", async () => {
   }
 });
 
+test("includes the Vercel Web Analytics beacon in the client bundle", async () => {
+  const html = await readFile(new URL("../dist/client/index.html", import.meta.url), "utf8");
+  const script = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
+  assert.ok(script, "client bundle script tag");
+  const js = await readFile(new URL(`../dist/client${script[1]}`, import.meta.url), "utf8");
+  assert.ok(js.includes("/_vercel/insights/script.js"));
+});
+
 test("ships the exact 1200 by 630 social card and crawler files", async () => {
   const png = await readFile(new URL("../dist/client/og.png", import.meta.url));
   assert.equal(png.subarray(1, 4).toString(), "PNG");
