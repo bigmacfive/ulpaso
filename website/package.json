@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
+    "@vercel/analytics": "2.0.1",
     "@vitejs/plugin-react": "5.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
